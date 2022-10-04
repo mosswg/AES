@@ -674,18 +674,58 @@ uint8_t gf_2_8_get_value_inverse(const uint8_t value, uint16_t polynomial) {
     return aux[quotients.size() - 1];
 }
 
-    auto *sha = new uint32_t[5];
-    auto *sha2 = new uint32_t[5];
+uint8_t aes_generate_sbox_value(uint8_t value) {
+    uint8_t inverse = 0;
+    if (value != 0) {
+        inverse = gf_2_8_get_value_inverse(value, AES_IRREDUCIBLE_POLYNOMIAL);
+    }
+    uint8_t result = 0;
 
-    std::string test = "";
-    for (int i = 0; i < 64; i++) {
+    uint8_t current_bit;
 
-        test += (char)('a' + (i % ('z' - 'a')));
+    for (int i = 0; i < 8; i++) {
+        current_bit = ((sbox_matrix[i][0] * (inverse & 0b00000001)) ^
+                (sbox_matrix[i][1] * ((inverse & 0b00000010) >> 1)) ^
+                (sbox_matrix[i][2] * ((inverse & 0b00000100) >> 2)) ^
+                (sbox_matrix[i][3] * ((inverse & 0b00001000) >> 3)) ^
+                (sbox_matrix[i][4] * ((inverse & 0b00010000) >> 4)) ^
+                (sbox_matrix[i][5] * ((inverse & 0b00100000) >> 5)) ^
+                (sbox_matrix[i][6] * ((inverse & 0b01000000) >> 6)) ^
+                (sbox_matrix[i][7] * ((inverse & 0b10000000) >> 7))) ^
+                sbox_vector[i];
 
-        sha1(test, sha2);
+        // std::cout << (uint16_t)current_bit << std::endl;
+
+        result |= current_bit << i;
+    }
+
+    return result;
+}
 
 
-        auto* test_uint = new uint32_t[test.size() / 4 + 1];
+void aes_generate_sbox() {
+    sbox = new uint8_t[256];
+
+    for (int i = 0; i < 256; i++) {
+        sbox[i] = aes_generate_sbox_value(i);
+    }
+}
+
+uint8_t aes_sub_word8(uint8_t word) {
+    if (!sbox) {
+        aes_generate_sbox();
+    }
+
+    return sbox[word];
+}
+
+uint32_t aes_sub_word32(uint32_t word) {
+    uint32_t out = 0;
+
+    out |= aes_sub_word8((word >> 24) & 0xff) << 24;
+    out |= aes_sub_word8((word >> 16) & 0xff) << 16;
+    out |= aes_sub_word8((word >> 8) & 0xff) << 8;
+    out |= aes_sub_word8(word & 0xff);
 
         for (int i = 0; i < test.size() / 4 + 1; i++) {
             test_uint[i] = 0;
