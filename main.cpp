@@ -263,37 +263,152 @@ uint32_t* compute_block_sized_key(const std::string& key, int block_size) {
 }
 
 /// Source: https://en.wikipedia.org/wiki/HMAC#Implementation
-void hmac(std::string key, std::string message, int blockSize, int outputSize) {
-// Compute the block sized key
+void hmac(const std::string& key, const std::string& message, uint32_t* output) {
+    int blockSize = 64;
+
+    uint32_t block_size_in_uints = blockSize / 4 + ((blockSize % 4) != 0);
+
     uint32_t* block_sized_key = compute_block_sized_key(key, blockSize);
 
     auto* message_converted = new uint32_t[message.size()];
     convert_be(message, message_converted);
 
-    auto* o_key_pad = new uint32_t[blockSize];
-    auto* i_key_pad = new uint32_t[blockSize];
+    auto* o_key_pad = new uint32_t[block_size_in_uints];
+    auto* i_key_pad = new uint32_t[block_size_in_uints];
 
     for (int i = 0; i < blockSize; i++) {
-        o_key_pad[i] = 0x5c ^ block_sized_key[i];
-        i_key_pad[i] = 0x36 ^ block_sized_key[i];
+        int uint_index = i / 4;
+        int sub_byte_index = i % 4;
+
+        uint32_t mask = 0xFF000000 >> (sub_byte_index * 8);
+        uint8_t xor_byte = (block_sized_key[uint_index] & mask) >> ((3-sub_byte_index) * 8);
+
+        o_key_pad[uint_index] |= (0x5c ^ xor_byte) << ((3-sub_byte_index) * 8);
+
+        i_key_pad[uint_index] |= (0x36 ^ xor_byte) << ((3-sub_byte_index) * 8);
     }
 
-    auto* initial = new uint32_t[blockSize * 2];
+    auto* initial = new uint32_t[block_size_in_uints * 2];
 
-    for (int i = 0; i < blockSize * 2; i++) {
-        if (i < blockSize) {
+    for (int i = 0; i < block_size_in_uints * 2; i++) {
+        if (i < block_size_in_uints) {
             initial[i] = i_key_pad[i];
         }
         else {
-            initial[i] = message_converted[i];
+            initial[i] = message_converted[i % block_size_in_uints];
         }
     }
 
     auto* hash_output = new uint32_t[5];
 
-    sha1(initial, blockSize * 2, hash_output);
+    sha1(initial, blockSize + message.size(), hash_output);
 
-    // return hash(o_key_pad)
+    auto* semifinal = new uint32_t[block_size_in_uints * 2];
+
+    for (int i = 0; i < block_size_in_uints * 2; i++) {
+        if (i < block_size_in_uints) {
+            semifinal[i] = o_key_pad[i];
+        }
+        else if (i - block_size_in_uints < 5){
+            semifinal[i] = hash_output[i % block_size_in_uints];
+        }
+        else {
+            semifinal[i] = 0;
+        }
+    }
+
+
+    sha1(semifinal, blockSize + 20, output);
+
+    delete[] message_converted;
+    delete[] o_key_pad;
+    delete[] i_key_pad;
+    delete[] initial;
+    delete[] hash_output;
+    delete[] semifinal;
+}
+
+void hmac(const std::string& key, uint32_t* message, uint32_t message_length, uint32_t* output) {
+    int blockSize = 64;
+
+    uint32_t block_size_in_uints = blockSize / 4 + ((blockSize % 4) != 0);
+
+    uint32_t* block_sized_key = compute_block_sized_key(key, blockSize);
+
+    auto* o_key_pad = new uint32_t[block_size_in_uints];
+    auto* i_key_pad = new uint32_t[block_size_in_uints];
+
+    for (int i = 0; i < blockSize; i++) {
+        int uint_index = i / 4;
+        int sub_byte_index = i % 4;
+
+        uint32_t mask = 0xFF000000 >> (sub_byte_index * 8);
+        uint8_t xor_byte = (block_sized_key[uint_index] & mask) >> ((3-sub_byte_index) * 8);
+
+        o_key_pad[uint_index] |= (0x5c ^ xor_byte) << ((3-sub_byte_index) * 8);
+
+        i_key_pad[uint_index] |= (0x36 ^ xor_byte) << ((3-sub_byte_index) * 8);
+    }
+
+    auto* initial = new uint32_t[block_size_in_uints * 2];
+
+    for (int i = 0; i < block_size_in_uints * 2; i++) {
+        if (i < block_size_in_uints) {
+            initial[i] = i_key_pad[i];
+        }
+        else {
+            initial[i] = message[i % block_size_in_uints];
+        }
+    }
+
+    auto* hash_output = new uint32_t[5];
+
+    sha1(initial, blockSize + message_length, hash_output);
+
+    auto* semifinal = new uint32_t[block_size_in_uints * 2];
+
+    for (int i = 0; i < block_size_in_uints * 2; i++) {
+        if (i < block_size_in_uints) {
+            semifinal[i] = o_key_pad[i];
+        }
+        else if (i - block_size_in_uints < 5){
+            semifinal[i] = hash_output[i % block_size_in_uints];
+        }
+        else {
+            semifinal[i] = 0;
+        }
+    }
+
+
+    sha1(semifinal, blockSize + 20, output);
+
+    delete[] o_key_pad;
+    delete[] i_key_pad;
+    delete[] initial;
+    delete[] hash_output;
+    delete[] semifinal;
+}
+
+
+uint32_t big_endianify(uint32_t value) {
+    uint32_t out = 0;
+
+    out |= (value & 0xFF << 24);
+    out |= (value & 0xFF00 << 8);
+    out |= (value & 0xFF0000 >> 8);
+    out |= (value & 0xFF000000 >> 24);
+
+    return out;
+}
+
+uint32_t* pbkdf2_xor(uint32_t* a, const uint32_t* b) {
+    a[0] ^= b[0];
+    a[1] ^= b[1];
+    a[2] ^= b[2];
+    a[3] ^= b[3];
+    a[4] ^= b[4];
+
+    return a;
 }
 
 /// Source: https://en.wikipedia.org/wiki/PBKDF2#Key_derivation_process
