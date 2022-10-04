@@ -816,5 +816,151 @@ void aes_shift_rows(std::vector<uint32_t>& state) {
 
 
 
+/**
+ *
+ *
+ * |  128 bit  |  192 bit  |  256 bit  |
+ * |  10 round |  12 round |  14 round |
+ *
+ * 16 byte key
+ *
+ * ----------------------
+ * | k0 | k4 | k8 | kc |
+ * | k1 | k5 | k9 | kd |
+ * | k2 | k6 | ka | ke |
+ * | k3 | k7 | kb | kf |
+ * ----------------------
+ *
+ * expand using to get round keys
+ *
+ * round keys are
+ * rij where i is the round and j is the byte index
+ * e.g. 5th byte from 3rd round: r35
+ * e.g. 14th byte from the 12th round: rbd
+ *
+ *
+ * 16 byte message
+ *
+ * ----------------------
+ * | m0 | m4 | m8 | mc |
+ * | m1 | m5 | m9 | md |
+ * | m2 | m6 | ma | me |
+ * | m3 | m7 | mb | mf |
+ * ----------------------
+ *
+ * Xor the original key with the message
+ *
+ * ai = mi ^ ki
+ * 
+ * ----------------------
+ * | a0 | a4 | a8 | ac |
+ * | a1 | a5 | a9 | ad |
+ * | a2 | a6 | aa | ae |
+ * | a3 | a7 | ab | af |
+ * ----------------------
+ *
+ * For each round
+ *
+ * Sub-byte the state
+ *
+ * si = subbyte(ai)
+ *
+ * ----------------------
+ * | s0 | s4 | s8 | sc |
+ * | s1 | s5 | s9 | sd |
+ * | s2 | s6 | sa | se |
+ * | s3 | s7 | sb | sf |
+ * ----------------------
+ *
+ * Shift rows
+ * ----------------------
+ * | s0 | s4 | s8 | sc |
+ * | s5 | s9 | sd | s1 |
+ * | sa | se | s2 | s6 |
+ * | sf | s3 | s7 | sb |
+ * ----------------------
+ *
+ *
+ *
+ *
+ */
+void aes(const std::string& message, const std::string& key) {
+    const uint8_t rounds = 10;
+    const uint8_t key_len = 4;
+
+
+    std::vector<uint32_t> key_uint = convert_be(key);
+    /// Create round keys
+    std::vector<uint32_t> round_keys = aes_get_round_keys(key_len, key_uint, rounds + 1);
+
+    std::vector<uint32_t> state = convert_be(message);
+
+    /// Add original key to state.
+    aes_add_round_key(state, key_uint);
+
+    for (int i = 0; i < rounds - 1; i++) {
+
+        /// Sub-byte the state
+        for (auto& uint : state) {
+            uint = aes_sub_word32(uint);
+        }
+
+        /// Shirt rows
+        aes_shift_rows(state);
+    }
+
+}
+
+
+int main() {
+    std::string password = "peanuts";
+    int iterations = 1;
+    std::string salt = "saltysalt";
+    int length = 16;
+
+
+    std::string dk = pbkdf2(password, salt, iterations, length);
+
+
+
+    uint8_t key[32];
+
+    char output[128];
+
+    char iv[16];
+
+    for (char &c: iv) {
+        c = ' ';
+    }
+
+    for (char &c: output) {
+        c = 0;
+    }
+
+    std::string key_str = "Thats my Kung Fu";
+
+    std::vector<uint32_t> key_uint = convert_be(key_str);
+
+
+//    std::vector<uint32_t> round_keys = aes_get_round_keys(4, key_uint, 11);
+
+
+    std::vector<uint32_t> test = {0x00102030, 0x01112131, 0x02122232, 0x03132133};
+
+//    int idx = 0;
+//    for (auto rkey : round_keys) {
+//        print_uint_bytes(rkey);
+//
+//        if (++idx == 4) {
+//            std::cout << '\n';
+//            idx = 0;
+//        }
+//        else {
+//            std::cout << ' ';
+//        }
+//    }
+//    std::cout << std::endl;
+
+
     return 0;
 }
