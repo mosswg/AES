@@ -122,7 +122,7 @@ void sha1(const uint32_t* data, int data_size_bytes, uint32_t* output) {
 
     uint64_t ml = data_size_bytes * 8;
 
-    uint32_t data_size = data_size_bytes / 4 + 1;
+    uint32_t data_size = data_size_bytes / 4 + ((data_size_bytes % 4) != 0);
 
     // Pre-processing:
     // append the bit '1' to the message e.g. by adding 0x80 if message length is a multiple of 8 bits.
@@ -139,11 +139,12 @@ void sha1(const uint32_t* data, int data_size_bytes, uint32_t* output) {
         message[i] = data[i];
     }
 
-    set_byte_in_uint_array(message, data_size_bytes, 0b10000000);
-
     while ((data_size * 32) % 512 != 448) {
         message[data_size++] = (int)0;
     }
+
+    set_byte_in_uint_array(message, data_size_bytes, 0b10000000);
+
     data_size += 2;
     message[data_size - 2] = (ml & 0xFFFFFFFF00000000);
     message[data_size - 1] = (ml & 0xFFFFFFFF);
@@ -232,12 +233,25 @@ void sha1(const uint32_t* data, int data_size_bytes, uint32_t* output) {
     output[4] = h4;
 }
 
+/// Source: https://en.wikipedia.org/wiki/SHA-1#SHA-1_pseudocode
+void sha1(const std::string& data, uint32_t* output) {
+    auto* converted_data = new uint32_t[data.size() / 4 + 1];
+
+    convert_be(data, converted_data);
+
+    sha1(converted_data, data.size(), output);
+
+    delete[] converted_data;
+}
+
 /// Source: https://en.wikipedia.org/wiki/HMAC#Implementation
 uint32_t* compute_block_sized_key(const std::string& key, int block_size) {
-    auto* output = new uint32_t[block_size];
-    for (int i = 0; i < block_size; i++) {
+    uint32_t block_size_in_uints = block_size / 4 + ((block_size % 4) != 0);
+    auto* output = new uint32_t[block_size_in_uints];
+    for (int i = 0; i < block_size_in_uints; i++) {
         output[i] = 0;
     }
+
     if (key.size() > block_size) {
         sha1(key, output);
     }
