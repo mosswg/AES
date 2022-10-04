@@ -543,6 +543,32 @@ const uint16_t AES_IRREDUCIBLE_POLYNOMIAL = 0b100011011;
 
 
 
+uint8_t gf2_8_reduce_product(uint16_t value, uint16_t polynomial) {
+    uint8_t polynomial_degree = 0; uint16_t polynomial_copy = polynomial, polynomial_leading_coefficient;
+    for (; polynomial_copy >> (++polynomial_degree + 1););
+    polynomial_leading_coefficient = 1 << polynomial_degree;
+
+    while (value >= polynomial_leading_coefficient) {
+        uint8_t output_degree = 0;
+        uint16_t output_copy = value; polynomial_copy = polynomial;
+        for (; output_copy >> (++output_degree + 1););
+
+        uint8_t degree_difference = output_degree - polynomial_degree;
+
+        uint8_t output_bits[16];
+
+        for (int i = 0; i < 16; i++) {
+            output_bits[i] = (value >> i) & (0b1);
+        }
+
+        polynomial_copy = polynomial_copy << degree_difference;
+
+        value ^= polynomial_copy;
+    }
+
+    return value
+}
+
 uint8_t gf2_8_multiplication(uint8_t a, uint8_t b, uint16_t polynomial) {
     uint8_t polynomial_degree = 0; uint16_t polynomial_copy = polynomial, polynomial_leading_coefficient;
     for (; polynomial_copy >> (++polynomial_degree + 1););
@@ -567,26 +593,7 @@ uint8_t gf2_8_multiplication(uint8_t a, uint8_t b, uint16_t polynomial) {
     if (output < polynomial_leading_coefficient)
         return output;
 
-
-    while (output >= polynomial_leading_coefficient) {
-        uint8_t output_degree = 0;
-        uint16_t output_copy = output; polynomial_copy = polynomial;
-        for (; output_copy >> (++output_degree + 1););
-
-        uint8_t degree_difference = output_degree - polynomial_degree;
-
-        uint8_t output_bits[16];
-
-        for (int i = 0; i < 16; i++) {
-            output_bits[i] = (output >> i) & (0b1);
-        }
-
-        polynomial_copy = polynomial_copy << degree_difference;
-
-        output ^= polynomial_copy;
-    }
-
-    return output;
+    return gf2_8_reduce_product(output, polynomial);
 }
 
 /**
