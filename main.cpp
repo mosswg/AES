@@ -727,11 +727,38 @@ uint32_t aes_sub_word32(uint32_t word) {
     out |= aes_sub_word8((word >> 8) & 0xff) << 8;
     out |= aes_sub_word8(word & 0xff);
 
-        for (int i = 0; i < test.size() / 4 + 1; i++) {
-            test_uint[i] = 0;
-        }
+    return out;
+}
 
-        convert_be(test, test_uint);
+/**
+ *
+ * @param n - length of key (4 for 128-bit)
+ * @param key - key as a vector of uint32_t
+ * @param r - number of rounds (11 for 128-bit)
+ * @return a vector of round keys
+ */
+std::vector<uint32_t> aes_get_round_keys(uint8_t n, std::vector<uint32_t> key, uint8_t r) {
+    std::vector<uint32_t> w(4 * r);
+    std::vector<uint32_t> rc = aes_get_round_constants(10);
+
+
+    for (int i = 0; i <= 4 * r; i++) {
+        if (i < n) {
+            w[i] = key[i];
+        }
+        else if ((i % n) == 0) {
+            w[i] = (w[i - n] ^ (aes_sub_word32(aes_rot_word(w[i-1])))) ^ rc[i / n];
+        }
+        else if (n > 6 && (i % n) == 4) {
+            w[i] = w[i - n] ^ aes_sub_word32(w[i-1]);
+        }
+        else {
+            w[i] = w[i - n] ^ w[i - 1];
+        }
+    }
+
+    return w;
+}
 
         sha1(test_uint, test.size(), sha);
 
