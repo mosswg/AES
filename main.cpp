@@ -412,8 +412,43 @@ uint32_t* pbkdf2_xor(uint32_t* a, const uint32_t* b) {
 }
 
 /// Source: https://en.wikipedia.org/wiki/PBKDF2#Key_derivation_process
-std::string pbkdf2(const std::string& password, const std::string& salt, int iterations, int length) {
+std::string pbkdf2(const std::string& password, std::string salt, int iterations, int length) {
 
+    std::string dk;
+
+    std::vector<uint32_t*> T;
+
+    for (int i = 1; i <= ceil(length/20.0); i++) {
+
+
+
+
+        std::vector<uint32_t*> U;
+        U.push_back(new uint32_t[5]);
+
+        salt.push_back((i >> 24) & 0xff);
+        salt.push_back((i >> 16) & 0xff);
+        salt.push_back((i >> 8) & 0xff);
+        salt.push_back(i & 0xff);
+
+        hmac(password, salt, U[0]);
+
+
+
+        for (int c = 2; c <= iterations; c++) {
+            U.push_back(new uint32_t[5]);
+            hmac(password, U[i-1], 20, U[i]);
+            pbkdf2_xor(U[0], U[1]);
+        }
+
+        dk += convert_be(U[0], 20);
+
+        for (auto& j : U) {
+            delete[] j;
+        }
+    }
+
+    return dk.substr(0, length);
 }
 
 
