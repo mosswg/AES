@@ -760,37 +760,61 @@ std::vector<uint32_t> aes_get_round_keys(uint8_t n, std::vector<uint32_t> key, u
     return w;
 }
 
-        sha1(test_uint, test.size(), sha);
 
-        delete[] test_uint;
+void aes_add_round_key(std::vector<uint32_t>& state, const std::vector<uint32_t>& round_key) {
+    for (uint8_t i = 0; i < 4; i++) {
+        state[i] ^= round_key[i];
+    }
+}
 
-        bool equal = true;
-        for (int j = 0; j < 5; j++) {
-            equal = equal && (sha[j] == sha2[j]);
+void aes_print_state(const std::vector<uint32_t>& state) {
+    std::vector<uint8_t> bytes(16);
+    for (uint8_t i = 0; i < 4; i++) {
+        for (uint8_t j = 0; j < 4; j++) {
+            bytes[i * 4 + j] = (state[j] >> (24 - (8 * i))) & 0xff;
+        }
+    }
+
+    for (uint8_t j = 0; j < 4; j++) {
+        for (uint8_t i = 0; i < 4; i++) {
+            std::cout << std::hex << (((int)bytes[i * 4 + j]) & 0xff) << ' ';
+        }
+        std::cout << '\n';
+    }
+}
+
+
+void aes_shift_rows(std::vector<uint32_t>& state) {
+
+    uint8_t bytes[4];
+
+    std::vector<uint32_t> tmp(4);
+
+    for (uint8_t col = 0; col < 4; col++) {
+        for (uint8_t row = 0; row < 4; row++) {
+            bytes[row] = (state[col] >> (24 - (8 * row))) & 0xff;
         }
 
-        if (!equal) {
-            std::cout << i << ": " << test << std::endl;
-            for (int j = 0; j < 5; j++) {
-                std::cout << sha[j];
+        for (int8_t row = 0; row < 4; row++) {
+
+            int8_t placement_index = row - col;
+
+            if (placement_index < 0) {
+                placement_index = 4 + placement_index;
             }
-            std::cout << " =/= ";
-            for (int j = 0; j < 5; j++) {
-                std::cout << sha2[j];
-            }
-            std::cout << std::endl;
+
+            tmp[col] |= bytes[row] << (24 - (8 * placement_index));
         }
 
 
     }
 
-    delete[] sha;
-    delete[] sha2;
+    for (uint8_t col = 0; col < 4; col++) {
+        state[col] = tmp[col];
+    }
+}
 
-    // 30b59bc6c7c1622283a23950f2984bc5cd4fdd51
-    // 30b59bc6c7c1622283a23950f2984bc5cd4fdd51
 
-    // EVP_KDF_PBKDF2(password.c_str(), salt.c_str(), iterations, output, 0);
 
     return 0;
 }
