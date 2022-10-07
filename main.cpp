@@ -536,6 +536,7 @@ std::vector<std::vector<uint8_t>> sbox_matrix = {{1, 0, 0, 0, 1, 1, 1, 1},
 uint8_t sbox_vector[] = {1, 1, 0, 0, 0, 1, 1, 0};
 
 uint8_t* sbox = nullptr;
+uint8_t* inverse_sbox = nullptr;
 
 const uint16_t AES_IRREDUCIBLE_POLYNOMIAL = 0b100011011;
 
@@ -716,10 +717,20 @@ uint8_t aes_generate_sbox_value(uint8_t value) {
 
 
 void aes_generate_sbox() {
+    delete[] sbox;
     sbox = new uint8_t[256];
 
     for (int i = 0; i < 256; i++) {
         sbox[i] = aes_generate_sbox_value(i);
+    }
+}
+
+void aes_generate_inverse_sbox() {
+    delete[] inverse_sbox;
+    inverse_sbox = new uint8_t[256];
+
+    for (int i = 0; i < 256; i++) {
+        inverse_sbox[sbox[i]] = i;
     }
 }
 
@@ -738,6 +749,26 @@ uint32_t aes_sub_word32(uint32_t word) {
     out |= aes_sub_word8((word >> 16) & 0xff) << 16;
     out |= aes_sub_word8((word >> 8) & 0xff) << 8;
     out |= aes_sub_word8(word & 0xff);
+
+    return out;
+}
+
+
+uint8_t aes_inverse_sub_word8(uint8_t word) {
+    if (!sbox) {
+        aes_generate_sbox();
+    }
+
+    return inverse_sbox[word];
+}
+
+uint32_t aes_inverse_sub_word32(uint32_t word) {
+    uint32_t out = 0;
+
+    out |= aes_inverse_sub_word8((word >> 24) & 0xff) << 24;
+    out |= aes_inverse_sub_word8((word >> 16) & 0xff) << 16;
+    out |= aes_inverse_sub_word8((word >> 8) & 0xff) << 8;
+    out |= aes_inverse_sub_word8(word & 0xff);
 
     return out;
 }
@@ -962,7 +993,7 @@ void aes_mix_columns(std::vector<uint32_t>& state) {
  *
  *
  */
-std::vector<uint32_t> aes(const std::string& message, const std::string& key) {
+std::vector<uint32_t> aes_encrypt(const std::string& message, const std::string& key) {
     const uint8_t rounds = 10;
     const uint8_t key_len = 4;
 
