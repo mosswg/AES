@@ -484,6 +484,17 @@ uint32_t aes_rot_word(uint32_t word) {
     return rotateleft(word, 8);
 }
 
+void aes_rotate_state(std::vector<uint32_t>& state) {
+    std::vector<uint32_t> state_copy = state;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        for (uint8_t j = 0; j < 4; j++) {
+            state[j] &= ~(0xff << (24 - (8 * i)));
+            state[j] |= (((state_copy[i] >> (24 - (8 * j))) & 0xff) << (24 - (8 * i)));
+        }
+    }
+}
+
 /*
 aes affine transformation individual values
 {{1, 0, 0, 0, 1, 1, 1, 1},
