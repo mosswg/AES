@@ -962,31 +962,56 @@ void aes_mix_columns(std::vector<uint32_t>& state) {
  *
  *
  */
-void aes(const std::string& message, const std::string& key) {
+std::vector<uint32_t> aes(const std::string& message, const std::string& key) {
     const uint8_t rounds = 10;
     const uint8_t key_len = 4;
 
+    /// TODO: Make it so that all these values are rotated by default
 
     std::vector<uint32_t> key_uint = convert_be(key);
     /// Create round keys
     std::vector<uint32_t> round_keys = aes_get_round_keys(key_len, key_uint, rounds + 1);
 
+    /// Rotate the first key
+    aes_rotate_state(key_uint.begin());
+
+    /// Rotate the state
     std::vector<uint32_t> state = convert_be(message);
+    aes_rotate_state(state.begin());
 
     /// Add original key to state.
-    aes_add_round_key(state, key_uint);
+    aes_add_round_key(state, key_uint.begin());
 
-    for (int i = 0; i < rounds - 1; i++) {
+    for (int i = 1; i < rounds; i++) {
 
         /// Sub-byte the state
         for (auto& uint : state) {
             uint = aes_sub_word32(uint);
         }
 
-        /// Shirt rows
+        /// Shift Rows
         aes_shift_rows(state);
+
+        /// Mix Columns
+        aes_mix_columns(state);
+
+        // Add Round Key
+        aes_add_round_key(state, round_keys.begin() + (i * 4));
     }
 
+
+    /// Sub-byte the state
+    for (auto& uint : state) {
+        uint = aes_sub_word32(uint);
+    }
+
+    /// Shift Rows
+    aes_shift_rows(state);
+
+    // Add Round Key
+    aes_add_round_key(state, round_keys.begin() + (10 * 4));
+
+    return state;
 }
 
 
