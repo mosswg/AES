@@ -765,21 +765,13 @@ void aes_add_round_key(std::vector<uint32_t>& state, const std::vector<uint32_t>
 }
 
 void aes_print_state(const std::vector<uint32_t>& state) {
-    std::vector<uint8_t> bytes(16);
-    for (uint8_t i = 0; i < 4; i++) {
-        for (uint8_t j = 0; j < 4; j++) {
-            bytes[i * 4 + j] = (state[j] >> (24 - (8 * i))) & 0xff;
-        }
-    }
-
-    for (uint8_t j = 0; j < 4; j++) {
-        for (uint8_t i = 0; i < 4; i++) {
-            std::cout << std::hex << (((int)bytes[i * 4 + j]) & 0xff) << ' ';
+    for (uint32_t u32 : state) {
+        for (int i = 0; i < 4; i++) {
+            std::cout << std::hex << ((u32 >> (24 - (i * 8))) & 0xff) << ' ';
         }
         std::cout << '\n';
     }
-
-    std::cout << '\n';
+    std::cout << '\n' << std::dec;
 }
 
 
@@ -804,8 +796,6 @@ void aes_shift_rows(std::vector<uint32_t>& state) {
 
             tmp[col] |= bytes[row] << (24 - (8 * placement_index));
         }
-
-
     }
 
     for (uint8_t col = 0; col < 4; col++) {
