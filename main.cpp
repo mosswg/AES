@@ -566,7 +566,7 @@ uint8_t gf2_8_reduce_product(uint16_t value, uint16_t polynomial) {
         value ^= polynomial_copy;
     }
 
-    return value
+    return value;
 }
 
 uint8_t gf2_8_multiplication(uint8_t a, uint8_t b, uint16_t polynomial) {
@@ -633,16 +633,6 @@ uint16_t gf2_8_division(uint16_t a, uint16_t b) {
 
     return ((quotient << 8) | a);
 }
-
-
-
-
-
-
-
-
-
-
 
 
 /**
@@ -788,6 +778,8 @@ void aes_print_state(const std::vector<uint32_t>& state) {
         }
         std::cout << '\n';
     }
+
+    std::cout << '\n';
 }
 
 
@@ -821,6 +813,60 @@ void aes_shift_rows(std::vector<uint32_t>& state) {
     }
 }
 
+uint8_t aes_mix_column_multiply(uint8_t a, uint8_t b) {
+    uint8_t polynomial = 0b00011011;
+
+    switch (a) {
+        case 1:
+            return b;
+        case 2:
+            return b << 1 ^ ((b >> 7 & 1) * polynomial);
+        case 3:
+            return ((b << 1) ^ ((b >> 7 & 1) * polynomial) ^ b);
+        default:
+            std::cerr << "AES MULTIPLICATION ERROR: Invalid value in a: " << a << std::endl;
+            exit(4);
+    }
+}
+
+
+
+void aes_mix_column_const(uint32_t& value) {
+    uint16_t b[] = {(uint8_t)((value >> 24) & 0xff), (uint8_t)((value >> 16) & 0xff),
+                    (uint8_t)((value >> 8) & 0xff), (uint8_t)(value & 0xff)};
+
+    uint8_t d[] = {(uint8_t)(aes_mix_column_multiply(2, b[0]) ^ aes_mix_column_multiply(3, b[1]) ^ b[2] ^ b[3]),
+                   (uint8_t)(aes_mix_column_multiply(2, b[1]) ^ aes_mix_column_multiply(3, b[2]) ^ b[3] ^ b[0]),
+                   (uint8_t)(aes_mix_column_multiply(2, b[2]) ^ aes_mix_column_multiply(3, b[3]) ^ b[0] ^ b[1]),
+                   (uint8_t)(aes_mix_column_multiply(2, b[3]) ^ aes_mix_column_multiply(3, b[0]) ^ b[1] ^ b[2])};
+
+    value = (d[0] << 24) | (d[1] << 16) | (d[2] << 8) | d[3];
+}
+
+void aes_mix_column(uint32_t& value) {
+    uint16_t polynomial = 0b00011011;
+    uint8_t a[] = {2, 1, 1, 3};
+    uint16_t b[] = {(uint8_t)((value >> 24) & 0xff), (uint8_t)((value >> 16) & 0xff),
+                   (uint8_t)((value >> 8) & 0xff), (uint8_t)(value & 0xff)};
+    uint8_t c[] = {aes_mix_column_multiply(a[0], b[0]),
+                   (uint8_t)((aes_mix_column_multiply(a[1], b[0]) ^ aes_mix_column_multiply(a[0], b[1]))),
+                   (uint8_t)((aes_mix_column_multiply(a[2], b[0]) ^ aes_mix_column_multiply(a[1], b[1])) ^ aes_mix_column_multiply(a[0], b[2])),
+                   (uint8_t)((aes_mix_column_multiply(a[3], b[0]) ^ aes_mix_column_multiply(a[2], b[1])) ^ aes_mix_column_multiply(a[1], b[2]) ^ aes_mix_column_multiply(a[0], b[3])),
+                   (uint8_t)((aes_mix_column_multiply(a[3], b[1]) ^ aes_mix_column_multiply(a[2], b[2])) ^ aes_mix_column_multiply(a[1], b[3])),
+                   (uint8_t)((aes_mix_column_multiply(a[3], b[2]) ^ aes_mix_column_multiply(a[2], b[3]))),
+                   aes_mix_column_multiply(a[3], b[3])};
+
+    value = ((c[0] ^ c[4]) << 24) | ((c[1] ^ c[5]) << 16) | ((c[2] ^ c[6]) << 8) | c[3];
+}
+
+
+
+void aes_mix_columns(std::vector<uint32_t>& state) {
+    aes_mix_column(state[0]);
+    aes_mix_column(state[1]);
+    aes_mix_column(state[2]);
+    aes_mix_column(state[3]);
+}
 
 
 /**
