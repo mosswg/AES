@@ -1,7 +1,6 @@
 #include <iostream>
 #include <climits>
 #include <vector>
-#include <sstream>
 #include <cmath>
 #include <bitset>
 
@@ -755,8 +754,8 @@ uint32_t aes_sub_word32(uint32_t word) {
 
 
 uint8_t aes_inverse_sub_word8(uint8_t word) {
-    if (!sbox) {
-        aes_generate_sbox();
+    if (!inverse_sbox) {
+        aes_generate_inverse_sbox();
     }
 
     return inverse_sbox[word];
@@ -851,22 +850,73 @@ void aes_shift_rows(std::vector<uint32_t>& state) {
     }
 }
 
+void aes_reverse_shift_rows(std::vector<uint32_t>& state) {
+
+    uint8_t bytes[4];
+
+    std::vector<uint32_t> tmp(4);
+
+    for (uint8_t col = 0; col < 4; col++) {
+        tmp[col] = state[col] >> (col * 8);
+        tmp[col] |= state[col] << (32 - (col * 8));
+    }
+
+    for (uint8_t col = 0; col < 4; col++) {
+        state[col] = tmp[col];
+    }
+}
+
+/*
+ aes_mix_column_multiply(2, )
+ (b << 1 ^ ((b >> 7 & 1) * polynomial)) << 1 ^ (((b << 1 ^ ((b >> 7 & 1) * polynomial)) >> 7 & 1) * polynomial)
+ */
+
 uint8_t aes_mix_column_multiply(uint8_t a, uint8_t b) {
     uint8_t polynomial = 0b00011011;
 
     switch (a) {
         case 1:
+            /// b
             return b;
         case 2:
+            /// b * 2
             return b << 1 ^ ((b >> 7 & 1) * polynomial);
         case 3:
+            /// b * 2 + b
             return ((b << 1) ^ ((b >> 7 & 1) * polynomial) ^ b);
+        case 4: {
+            uint8_t b2 = b << 1 ^ ((b >> 7 & 1) * polynomial);
+            return b2 << 1 ^ ((b2 >> 7 & 1) * polynomial);
+        }
+        case 9: {
+            /// (b * 2 * 2 * 2) + b
+            uint8_t b2 = b << 1 ^ ((b >> 7 & 1) * polynomial);
+            uint8_t b4 = b2 << 1 ^ ((b2 >> 7 & 1) * polynomial);
+            return (b4 << 1 ^ ((b4 >> 7 & 1) * polynomial)) ^ b;
+        }
+        case 11: {
+            /// (b * 4 + b) * 2 + b
+            uint8_t b2 = b << 1 ^ ((b >> 7 & 1) * polynomial);
+            uint8_t b5 = (b2 << 1 ^ ((b2 >> 7 & 1) * polynomial)) ^ b;
+            return (b5 << 1 ^ ((b5 >> 7 & 1) * polynomial)) ^ b;
+        }
+        case 13: {
+            /// ((b * 2 + b) * 2 * 2) + b
+            uint8_t b3 = (b << 1 ^ ((b >> 7 & 1) * polynomial)) ^ b;
+            uint8_t b6 = (b3 << 1 ^ ((b3 >> 7 & 1) * polynomial));
+            return (b6 << 1 ^ ((b6 >> 7 & 1) * polynomial)) ^ b;
+        }
+        case 14: {
+            /// ((b * 2 + b) * 2 + b) * 2
+            uint8_t b3 = (b << 1 ^ ((b >> 7 & 1) * polynomial)) ^ b;
+            uint8_t b7 = (b3 << 1 ^ ((b3 >> 7 & 1) * polynomial)) ^ b;
+            return (b7 << 1 ^ ((b7 >> 7 & 1) * polynomial));
+        }
         default:
-            std::cerr << "AES MULTIPLICATION ERROR: Invalid value in a: " << a << std::endl;
+            std::cerr << "AES MULTIPLICATION ERROR: Invalid value in a: " << (int)a << std::endl;
             exit(4);
     }
 }
-
 
 
 uint32_t aes_mix_column_const(uint32_t value) {
@@ -999,6 +1049,22 @@ std::vector<uint32_t> aes_encrypt(const std::string& message, const std::string&
 
     /// TODO: Make it so that all these values are rotated by default
 
+    /// Verify key length
+    if (key.size() != 16) {
+        std::cerr << "AES KEY ERROR: Size of " << key.size() << " is invalid supported sizes are: 16";
+        exit(5);
+    }
+
+    /// Split into 16 byte chunks
+    if (message.size() > 16) {
+        std::vector<uint32_t> out;
+        for (uint16_t i = 0; (i * 16) < message.size(); i++) {
+            std::vector<uint32_t> sub_result = aes_encrypt(message.substr(i * 16, 16), key);
+            out.insert(out.end(), sub_result.begin(), sub_result.end());
+        }
+        return out;
+    }
+
     std::vector<uint32_t> key_uint = convert_be(key);
     /// Create round keys
     std::vector<uint32_t> round_keys = aes_get_round_keys(key_len, key_uint, rounds + 1);
@@ -1046,7 +1112,93 @@ std::vector<uint32_t> aes_encrypt(const std::string& message, const std::string&
 }
 
 
+std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::string& key) {
+    const uint8_t rounds = 10;
+    const uint8_t key_len = 4;
+
+    /// TODO: Make it so that all these values are rotated by default
+
+    /// Verify key length
+    if (key.size() != 16) {
+        std::cerr << "AES KEY ERROR: Size of " << key.size() << " is invalid supported sizes are: 16";
+        exit(5);
+    }
+
+    /// Split into 16 byte chunks
+    if (data.size() > 4) {
+        std::vector<uint32_t> out;
+        for (uint16_t i = 0; (i * 4) < data.size(); i++) {
+            std::vector<uint32_t> sub_result = aes_decrypt(std::vector<uint32_t>(data.begin() + i * 16, data.begin() + ((i + 1) * 16)), key);
+            out.insert(out.end(), sub_result.begin(), sub_result.end());
+        }
+        return out;
+    }
+
+    std::vector<uint32_t> key_uint = convert_be(key);
+    /// Create round keys
+    std::vector<uint32_t> round_keys = aes_get_round_keys(key_len, key_uint, rounds + 1);
+
+    /// Rotate the first key
+    aes_rotate_state(key_uint.begin());
+
+    std::vector<uint32_t> state = data;
+
+    std::cout << "Initial State:\n";
+    aes_print_state(state);
+
+    // Add Round Key
+    aes_add_round_key(state, round_keys.begin() + (10 * 4));
+    std::cout << "First Round Key:\n";
+    aes_print_state(state);
+
+    /// Shift Rows
+    aes_reverse_shift_rows(state);
+    std::cout << "First row shift:\n";
+    aes_print_state(state);
+
+    /// Sub-byte the state
+    for (auto& uint : state) {
+        uint = aes_inverse_sub_word32(uint);
+    }
+    std::cout << "First sub box:\n";
+    aes_print_state(state);
+
+
+    for (int i = rounds - 1; i > 0; i--) {
+        // Add Round Key
+        aes_add_round_key(state, round_keys.begin() + (i * 4));
+        std::cout << i << " Round key:\n";
+        aes_print_state(state);
+
+        /// Mix Columns
+        aes_inverse_mix_columns(state);
+        std::cout << i << " Round mix:\n";
+        aes_print_state(state);
+
+
+        /// Sub-byte the state
+        for (auto& uint : state) {
+            uint = aes_inverse_sub_word32(uint);
+        }
+        std::cout << i << " Round s-box:\n";
+        aes_print_state(state);
+
+        /// Shift Rows
+        aes_reverse_shift_rows(state);
+        std::cout << i << " Round shift:\n";
+        aes_print_state(state);
+    }
+
+    /// Add original key to state.
+    aes_add_round_key(state, key_uint.begin());
+    std::cout << " Last Round key:\n";
+    aes_print_state(state);
+
+    return state;
+}
+
 int main() {
+
     std::string password = "peanuts";
     int iterations = 1;
     std::string salt = "saltysalt";
@@ -1056,45 +1208,27 @@ int main() {
     std::string dk = pbkdf2(password, salt, iterations, length);
 
 
+     std::string msg = "Two One Nine Two";
 
-    uint8_t key[32];
+     std::string key_str = "Thats my Kung Fu";
 
-    char output[128];
+    std::vector<uint32_t> state = aes_encrypt(msg, key_str);
 
-    char iv[16];
+    aes_decrypt(state, key_str);
 
-    for (char &c: iv) {
-        c = ' ';
-    }
+//    76 31 30 82 14 9f df 0a 02 8d b2 3d 54 fb 7e 87
+//    5b 35 e4 60 8c 7b 8d 5a d6 36 19 13 7a 83 13 6a
+//    7d ba d3 e7 4a b7 28 8a 88 d7 09 e8 33 43 5d 93
+//    88 f5 d6 6c 72 78 0b 84 77 28 45 94 eb d2 05 5d
+//    fe 47 2a 3f 8a af 0e 2e bd 0b 15 2b c0 f4 6f e0
+//    7e 5a 96 31 1a 40 2c a6 38 52 5f 83 4b b5 93 89
+//    1a ff bc e8 7c 9b 6b 75 a6 9f 8a ee 0a ec f7 67
+//    dd b2 78 1b 58 96 5f 5a 07 e8 d3 76 12 93 51 41
+//    4e a9 18 3a 72 98 5c 7a 1e 6b d6 1b f5 5e 85 4a
+//    16 6e 4b d4 f9 42 c5 ad 95 83 ff 28 b0 d8 0b 35
+//    8e cf 31
 
-    for (char &c: output) {
-        c = 0;
-    }
-
-    std::string key_str = "Thats my Kung Fu";
-
-    std::vector<uint32_t> key_uint = convert_be(key_str);
-
-
-//    std::vector<uint32_t> round_keys = aes_get_round_keys(4, key_uint, 11);
-
-
-    std::vector<uint32_t> test = {0x00102030, 0x01112131, 0x02122232, 0x03132133};
-
-//    int idx = 0;
-//    for (auto rkey : round_keys) {
-//        print_uint_bytes(rkey);
-//
-//        if (++idx == 4) {
-//            std::cout << '\n';
-//            idx = 0;
-//        }
-//        else {
-//            std::cout << ' ';
-//        }
-//    }
-//    std::cout << std::endl;
-
+    // std::string msg = "igjf6EKtqiytAqR0JegED1DMkk6oI54RI43HmAx6Ff4-1665116978-0-AU3TNGQM8/hOMzG8mp/CCQ56ogheWfHKwSqjf10nji2iLegLY+GPYdYsLAwnMw4pWF5BwzASnhAieZq+ca1Jnf8=";
 
     return 0;
 }
