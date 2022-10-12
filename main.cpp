@@ -947,6 +947,54 @@ uint32_t aes_mix_column(uint32_t value) {
     return ((c[0] ^ c[4]) << 24) | ((c[1] ^ c[5]) << 16) | ((c[2] ^ c[6]) << 8) | c[3];
 }
 
+//
+//uint32_t aes_inverse_mix_column(uint32_t value) {
+//    uint16_t d[] = {(uint8_t)((value >> 24) & 0xff), (uint8_t)((value >> 16) & 0xff),
+//                    (uint8_t)((value >> 8) & 0xff), (uint8_t)(value & 0xff)};
+//
+//    uint8_t b[] = {(uint8_t)(aes_mix_column_multiply(14, b[0]) ^ aes_mix_column_multiply(11, b[1]) ^ aes_mix_column_multiply(13, b[2]) ^ aes_mix_column_multiply(9, b[3])),
+//                   (uint8_t)(aes_mix_column_multiply(9, b[0]) ^ aes_mix_column_multiply(14, b[1]) ^ aes_mix_column_multiply(11, b[2]) ^ aes_mix_column_multiply(13, b[3])),
+//                   (uint8_t)(aes_mix_column_multiply(13, b[0]) ^ aes_mix_column_multiply(9, b[1]) ^ aes_mix_column_multiply(14, b[2]) ^ aes_mix_column_multiply(11, b[3])),
+//                   (uint8_t)(aes_mix_column_multiply(11, b[0]) ^ aes_mix_column_multiply(13, b[1]) ^ aes_mix_column_multiply(9, b[2]) ^ aes_mix_column_multiply(14, b[3]))};
+//
+//    return (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
+//}
+
+uint32_t aes_inverse_mix_column(uint32_t value) {
+    uint16_t polynomial = 0b00011011;
+    uint8_t a[] = {2, 1, 1, 3};
+    uint16_t d[] = {(uint8_t)((value >> 24) & 0xff), (uint8_t)((value >> 16) & 0xff),
+                    (uint8_t)((value >> 8) & 0xff), (uint8_t)(value & 0xff)};
+
+
+    // 14 11 13 9
+    // 9 14 11 13
+    // 13 9 14 11
+    // 11 13 9 14
+    uint8_t m[4] = {14, 11, 13, 9};
+
+    uint8_t b[4];
+
+
+    for (int i = 0; i < 4; i++) {
+        uint8_t bi_0 = aes_mix_column_multiply(m[0], d[0]);
+        uint8_t bi_1 = aes_mix_column_multiply(m[1], d[1]);
+        uint8_t bi_2 = aes_mix_column_multiply(m[2], d[2]);
+        uint8_t bi_3 = aes_mix_column_multiply(m[3], d[3]);
+
+
+        b[i] =  bi_0 ^ bi_1 ^ bi_2 ^ bi_3;
+
+        uint8_t tmp = m[3];
+        m[3] = m[2];
+        m[2] = m[1];
+        m[1] = m[0];
+        m[0] = tmp;
+    }
+
+    return (b[3]) | (b[2] << 8) | (b[1] << 16) | (b[0] << 24);
+}
+
 uint32_t aes_extract_column(const std::vector<uint32_t>& state, uint8_t column_index) {
     uint32_t column = 0;
     for (uint8_t row = 0; row < 4; row++) {
@@ -973,6 +1021,36 @@ void aes_mix_columns(std::vector<uint32_t>& state) {
 
         aes_emplace_column(state, column, i);
     }
+}
+
+void aes_inverse_mix_columns(std::vector<uint32_t>& state) {
+
+    for (uint8_t i = 0; i < 4; i++) {
+
+        uint32_t column = aes_extract_column(state, i);
+
+        column = aes_inverse_mix_column(column);
+
+        aes_emplace_column(state, column, i);
+    }
+}
+
+std::vector<uint32_t> aes_convert(const std::string& data) {
+    int bits = 0;
+
+    std::vector<uint32_t> out = {0, 0, 0, 0};
+
+    for (char ch : data) {
+        out[bits / 32] |= ((ch << (24 - (bits % 32))) & (0xFF << (24 - (bits % 32))));
+
+        bits += 8;
+    }
+
+//    if (data.size() != 16) {
+//        set_byte_in_uint_array(out.data(), data.size() + 1, 0x80);
+//    }
+
+    return out;
 }
 
 /**
