@@ -45,11 +45,11 @@ The key expansion uses [Round Constants](#round-constants) and two functions:
 * RotWord - a one-byte ciicular roation such that RotWord([$b_{0}$\t$b_{1}$\t$b_{2}$\t$b_{3}$]) = [$b_{1}$\t$b_{2}$\t$b_{3}$\t$b_{0}$]
 * SubWord - a direct substituition using the [S-Box](#sub-bytes).
 
-The key expansion is done following the formula where N is key size in 32-bit words (e.g. for AES-128 N is 4), K is byte array of the key, and W is the array of byte representing the round keys:
-if $i < N$ then $W_{i} = K_[i}$ \
-else if $(i mod N) = 0$ then $W_{i} = W_{i-N} \oplus SubWord(RotWord(W_{i-1})) \oplus rcon_{i / N}$ \
-else if $N > 6$ and $(i mod N) = 4$ then $W_{i} = W_{i-N} \cplus SubWord(W_{i-1})$
-else $W_{i} = W_{i-N} \cplus W_{i-1}
+The key expansion is done following the formula where N is key size in 32-bit words (e.g. for AES-128 N is 4), K is byte array of the key, and W is the array of byte representing the round keys: \
+if $i < N$ then $W_{i} = K_{i}$ \
+else if $(i \pmod N) = 0$ then $W_{i} = W_{i-N} \oplus SubWord(RotWord(W_{i-1})) \oplus rcon_{i / N}$ \
+else if $N > 6$ and $(i \pmod N) = 4$ then $W_{i} = W_{i-N} \cplus SubWord(W_{i-1})$
+else $W_{i} = W_{i-N} \oplus W_{i-1}
 
 ### Add Round Key
 
