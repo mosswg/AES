@@ -13,7 +13,7 @@ There are a different number of rounds based on the key size (128-bit, 196-bit, 
 
 ## Notation
 $\oplus$ denotes an xor operation. \
-[$b_{0}$\t$b_{1}$\t$b_{2}$\t$b_{3}$] denotes the bytes of a 32-bit value where $b_{0}$ is the first byte in little endian and so on.
+[ $b_{0}$ 	$b_{1}$ 	$b_{2}$ 	$b_{3}$] denotes the bytes of a 32-bit value where $b_{0}$ is the first byte in little endian and so on.
 
 ### Initial Steps
 1. [Key Expansion](#key-expansion) - AES includes a key schedule so that there is one key for every round.
@@ -36,20 +36,20 @@ $\oplus$ denotes an xor operation. \
 ## Steps In Depth
 ### Round Constants
 if $i = 1$ then $rc_{i} = 1$ \
-if $i > 1$ and $rc_{i-1} < 0x80$ then $rc_{i} = 2 \cdot rc_{i-1} \
+if $i > 1$ and $rc_{i-1} < 0x80$ then $rc_{i} = 2 \cdot rc_{i-1}$ \
 if $i > 1$ and $rc_{i-1} > 0x80$ then $rc_{i} = 2 \cdot rc_{i-1} \oplus 0x11b$ \
-$rc$ values are then expanded from an byte value into four byte round constant values with: {$rc_{i}$\t$0$\t$0$\t$0$} \
+$rc$ values are then expanded from an byte value into four byte round constant values with: [ $rc_{i}$		$0$		$0$		$0$ ] \
 
 ### Key Expansion
 The key expansion uses [Round Constants](#round-constants) and two functions:
-* RotWord - a one-byte ciicular roation such that RotWord([$b_{0}$\t$b_{1}$\t$b_{2}$\t$b_{3}$]) = [$b_{1}$\t$b_{2}$\t$b_{3}$\t$b_{0}$]
+* RotWord - a one-byte ciicular roation such that RotWord([ $b_{0}$		$b_{1}$		$b_{2}$		$b_{3}$ ]) = [ $b_{1}$		$b_{2}$		$b_{3}$		$b_{0}$ ]
 * SubWord - a direct substituition using the [S-Box](#sub-bytes).
 
 The key expansion is done following the formula where N is key size in 32-bit words (e.g. for AES-128 N is 4), K is byte array of the key, and W is the array of byte representing the round keys: \
 if $i < N$ then $W_{i} = K_{i}$ \
-else if $(i \pmod N) = 0$ then $W_{i} = W_{i-N} \oplus SubWord(RotWord(W_{i-1})) \oplus rcon_{i / N}$ \
-else if $N > 6$ and $(i \pmod N) = 4$ then $W_{i} = W_{i-N} \cplus SubWord(W_{i-1})$
-else $W_{i} = W_{i-N} \oplus W_{i-1}
+else if $(i \mod N) = 0$ then $W_{i} = W_{i-N} \oplus SubWord(RotWord(W_{i-1})) \oplus rcon_{i / N}$ \
+else if $N > 6$ and $(i \mod N) = 4$ then $W_{i} = W_{i-N} \oplus SubWord(W_{i-1})$
+else $W_{i} = W_{i-N} \oplus W_{i-1}$
 
 ### Add Round Key
 
