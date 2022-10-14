@@ -11,39 +11,6 @@ uint32_t rotateleft (uint32_t value, unsigned int count) {
     return (value << count) | (value >> (-count & mask));
 }
 
-/// Source: https://en.wikipedia.org/wiki/Circular_shift#Implementing_circular_shifts
-uint32_t rotateright (uint32_t value, unsigned int count) {
-    const unsigned int mask = CHAR_BIT * sizeof(value) - 1;
-    count &= mask;
-    return (value >> count) | (value << (-count & mask));
-}
-
-void print_uint_bytes(uint32_t word) {
-    uint32_t b0 = ((word >> 24) & 0xff);
-    uint32_t b1 = ((word >> 16) & 0xff);
-    uint32_t b2 = ((word >> 8) & 0xff);
-    uint32_t b3 = (word & 0xff);
-
-    std::cout << std::hex << ((b0 < 0x10) ? "0" : "") << b0 << ((b1 < 0x10) ? " 0" : " ") << b1 << ((b2 < 0x10) ? " 0" : " ") << b2 << ((b3 < 0x10) ? " 0" : " ") << b3 << '\n' << std::dec;
-}
-
-void convert_be(const std::string& data, uint32_t* output, uint32_t bit_limit = 0) {
-    int bits = 0;
-
-    for (char ch : data) {
-        if (bits % 32 == 0) {
-            output[bits / 32] = 0;
-        }
-
-        output[bits / 32] |= ((ch << (24 - (bits % 32))) & (0xFF << (24 - (bits % 32))));
-
-        if (bit_limit != 0 && bits == bit_limit)
-            return;
-
-        bits += 8;
-    }
-}
-
 std::vector<uint32_t> convert_be(const std::string& data) {
     int bits = 0;
 
@@ -62,402 +29,9 @@ std::vector<uint32_t> convert_be(const std::string& data) {
     return out;
 }
 
-std::string convert_be(uint32_t* data, uint32_t data_size) {
-    std::string out;
+void aes_get_round_constants(uint8_t rounds, uint32_t* output) {
 
-    for (int i = 0; i < data_size / 4; i++) {
-        out += ((data[i] & 0xFF000000) >> 24);
-        out += ((data[i] & 0xFF0000) >> 16);
-        out += ((data[i] & 0xFF00) >> 8);
-        out += (data[i] & 0xFF);
-    }
-
-    return out;
-}
-
-
-void convert_le(const std::string& data, uint32_t* output, uint32_t bit_limit = 0) {
-    int bits = 0;
-
-    for (char ch : data) {
-        output[bits / 32] |= ((ch << (bits % 32)) & (0xFF << (bits % 32)));
-
-        if (bits == bit_limit)
-            return;
-
-        bits += 8;
-    }
-}
-
-
-void set_byte_in_uint_array(uint32_t* data, int byte_index, uint8_t byte) {
-    int uint_index = byte_index / 4;
-    int sub_byte_index = byte_index % 4;
-
-    uint32_t mask = ~(0xFF000000 >> (sub_byte_index * 8));
-
-    data[uint_index] &= mask;
-    data[uint_index] |= byte << ((3-sub_byte_index) * 8);
-}
-
-/// Source: https://en.wikipedia.org/wiki/SHA-1#SHA-1_pseudocode
-void sha1(const uint32_t* data, int data_size_bytes, uint32_t* output) {
-
-
-    // Note 1: All variables are unsigned 32-bit quantities and wrap modulo 232 when calculating, except for
-    //      ml, the message length, which is a 64-bit quantity, and
-    //      hh, the message digest, which is a 160-bit quantity.
-    // Note 2: All constants in this pseudo code are in big endian.
-    //      Within each word, the most significant byte is stored in the leftmost byte position
-
-    // Initialize variables:
-
-    uint32_t h0 = 0x67452301;
-    uint32_t h1 = 0xEFCDAB89;
-    uint32_t h2 = 0x98BADCFE;
-    uint32_t h3 = 0x10325476;
-    uint32_t h4 = 0xC3D2E1F0;
-
-
-    uint64_t ml = data_size_bytes * 8;
-
-    uint32_t data_size = data_size_bytes / 4 + ((data_size_bytes % 4) != 0);
-
-    // Pre-processing:
-    // append the bit '1' to the message e.g. by adding 0x80 if message length is a multiple of 8 bits.
-    //        append 0 ≤ k < 512 bits '0', such that the resulting message length in bits
-    // is congruent to −64 ≡ 448 (mod 512)
-    // append ml, the original message length in bits, as a 64-bit big-endian integer.
-    //        Thus, the total length is a multiple of 512 bits.
-
-    int size_away_from_512 = 512 - ((data_size * 32) % 512);
-
-    auto* message = new uint32_t[data_size + (size_away_from_512 / 32)];
-
-    for (int i = 0; i < data_size; i++) {
-        message[i] = data[i];
-    }
-
-    while ((data_size * 32) % 512 != 448) {
-        message[data_size++] = (int)0;
-    }
-
-    set_byte_in_uint_array(message, data_size_bytes, 0b10000000);
-
-    data_size += 2;
-    message[data_size - 2] = (ml & 0xFFFFFFFF00000000);
-    message[data_size - 1] = (ml & 0xFFFFFFFF);
-
-    // Process the message in successive 512-bit chunks:
-    // break message into 512-bit chunks
-
-    std::vector<uint32_t*> chunks;
-
-    for (int i = 0; i < data_size; i++) {
-        if ((i % 16) == 0) {
-            chunks.push_back(new uint32_t[80]);
-        }
-
-        chunks.back()[i % 16] = message[i];
-    }
-
-//    for (auto& chunk : chunks) {
-//        for (int i = 0; i < 16; i++) {
-//            std::cout << chunk[i] << '\n';
-//        }
-//    }
-
-    for (auto& chunk : chunks) {
-        // break chunk into sixteen 32-bit big-endian words w[i], 0 ≤ i ≤ 15
-
-        // Message schedule: extend the sixteen 32-bit words into eighty 32-bit words:
-        // for i from 16 to 79
-        // Note 3: SHA-0 differs by not having this leftrotate.
-        for (int i = 16; i < 80; i++) {
-            chunk[i] = rotateleft((chunk[i - 3] xor chunk[i - 8] xor chunk[i - 14] xor chunk[i - 16]), 1);
-        }
-
-        // Initialize hash value for this chunk:
-        uint32_t a = h0;
-        uint32_t b = h1;
-        uint32_t c = h2;
-        uint32_t d = h3;
-        uint32_t e = h4;
-
-        //  Main loop:[10][56]
-        for (int i = 0; i < 80; i++) {
-            uint32_t f;
-            uint32_t k;
-            if (0 <= i && i <= 19) {
-                f = (b & c) | ((~b) & d);
-                k = 0x5A827999;
-            } else if (i >= 20 && i <= 39) {
-                f = b ^ c ^ d;
-                k = 0x6ED9EBA1;
-            } else if (i >= 40 && i <= 59) {
-                f = (b & c) | (b & d) | (c & d);
-                k = 0x8F1BBCDC;
-            } else {
-                f = b xor c xor d;
-                k = 0xCA62C1D6;
-            }
-
-            uint32_t temp = (rotateleft(a, 5)) + f + e + k + chunk[i];
-            e = d;
-            d = c;
-            c = rotateleft(b, 30);
-            b = a;
-            a = temp;
-        }
-
-        // Add this chunk's hash to result so far:
-        h0 = h0 + a;
-        h1 = h1 + b;
-        h2 = h2 + c;
-        h3 = h3 + d;
-        h4 = h4 + e;
-    }
-
-    for (auto& chunk : chunks) {
-        delete[] chunk;
-    }
-
-    delete[] message;
-
-
-
-    output[0] = h0;
-    output[1] = h1;
-    output[2] = h2;
-    output[3] = h3;
-    output[4] = h4;
-}
-
-/// Source: https://en.wikipedia.org/wiki/SHA-1#SHA-1_pseudocode
-void sha1(const std::string& data, uint32_t* output) {
-    auto* converted_data = new uint32_t[data.size() / 4 + 1];
-
-    convert_be(data, converted_data);
-
-    sha1(converted_data, data.size(), output);
-
-    delete[] converted_data;
-}
-
-/// Source: https://en.wikipedia.org/wiki/HMAC#Implementation
-uint32_t* compute_block_sized_key(const std::string& key, int block_size) {
-    uint32_t block_size_in_uints = block_size / 4 + ((block_size % 4) != 0);
-    auto* output = new uint32_t[block_size_in_uints];
-    for (int i = 0; i < block_size_in_uints; i++) {
-        output[i] = 0;
-    }
-
-    if (key.size() > block_size) {
-        sha1(key, output);
-    }
-    else {
-        convert_be(key, output);
-    }
-
-    return output;
-}
-
-/// Source: https://en.wikipedia.org/wiki/HMAC#Implementation
-void hmac(const std::string& key, const std::string& message, uint32_t* output) {
-    int blockSize = 64;
-
-    uint32_t block_size_in_uints = blockSize / 4 + ((blockSize % 4) != 0);
-
-    uint32_t* block_sized_key = compute_block_sized_key(key, blockSize);
-
-    auto* message_converted = new uint32_t[message.size()];
-    convert_be(message, message_converted);
-
-    auto* o_key_pad = new uint32_t[block_size_in_uints];
-    auto* i_key_pad = new uint32_t[block_size_in_uints];
-
-    for (int i = 0; i < blockSize; i++) {
-        int uint_index = i / 4;
-        int sub_byte_index = i % 4;
-
-        uint32_t mask = 0xFF000000 >> (sub_byte_index * 8);
-        uint8_t xor_byte = (block_sized_key[uint_index] & mask) >> ((3-sub_byte_index) * 8);
-
-        o_key_pad[uint_index] |= (0x5c ^ xor_byte) << ((3-sub_byte_index) * 8);
-
-        i_key_pad[uint_index] |= (0x36 ^ xor_byte) << ((3-sub_byte_index) * 8);
-    }
-
-    auto* initial = new uint32_t[block_size_in_uints * 2];
-
-    for (int i = 0; i < block_size_in_uints * 2; i++) {
-        if (i < block_size_in_uints) {
-            initial[i] = i_key_pad[i];
-        }
-        else {
-            initial[i] = message_converted[i % block_size_in_uints];
-        }
-    }
-
-    auto* hash_output = new uint32_t[5];
-
-    sha1(initial, blockSize + message.size(), hash_output);
-
-    auto* semifinal = new uint32_t[block_size_in_uints * 2];
-
-    for (int i = 0; i < block_size_in_uints * 2; i++) {
-        if (i < block_size_in_uints) {
-            semifinal[i] = o_key_pad[i];
-        }
-        else if (i - block_size_in_uints < 5){
-            semifinal[i] = hash_output[i % block_size_in_uints];
-        }
-        else {
-            semifinal[i] = 0;
-        }
-    }
-
-
-    sha1(semifinal, blockSize + 20, output);
-
-    delete[] message_converted;
-    delete[] o_key_pad;
-    delete[] i_key_pad;
-    delete[] initial;
-    delete[] hash_output;
-    delete[] semifinal;
-}
-
-void hmac(const std::string& key, uint32_t* message, uint32_t message_length, uint32_t* output) {
-    int blockSize = 64;
-
-    uint32_t block_size_in_uints = blockSize / 4 + ((blockSize % 4) != 0);
-
-    uint32_t* block_sized_key = compute_block_sized_key(key, blockSize);
-
-    auto* o_key_pad = new uint32_t[block_size_in_uints];
-    auto* i_key_pad = new uint32_t[block_size_in_uints];
-
-    for (int i = 0; i < blockSize; i++) {
-        int uint_index = i / 4;
-        int sub_byte_index = i % 4;
-
-        uint32_t mask = 0xFF000000 >> (sub_byte_index * 8);
-        uint8_t xor_byte = (block_sized_key[uint_index] & mask) >> ((3-sub_byte_index) * 8);
-
-        o_key_pad[uint_index] |= (0x5c ^ xor_byte) << ((3-sub_byte_index) * 8);
-
-        i_key_pad[uint_index] |= (0x36 ^ xor_byte) << ((3-sub_byte_index) * 8);
-    }
-
-    auto* initial = new uint32_t[block_size_in_uints * 2];
-
-    for (int i = 0; i < block_size_in_uints * 2; i++) {
-        if (i < block_size_in_uints) {
-            initial[i] = i_key_pad[i];
-        }
-        else {
-            initial[i] = message[i % block_size_in_uints];
-        }
-    }
-
-    auto* hash_output = new uint32_t[5];
-
-    sha1(initial, blockSize + message_length, hash_output);
-
-    auto* semifinal = new uint32_t[block_size_in_uints * 2];
-
-    for (int i = 0; i < block_size_in_uints * 2; i++) {
-        if (i < block_size_in_uints) {
-            semifinal[i] = o_key_pad[i];
-        }
-        else if (i - block_size_in_uints < 5){
-            semifinal[i] = hash_output[i % block_size_in_uints];
-        }
-        else {
-            semifinal[i] = 0;
-        }
-    }
-
-
-    sha1(semifinal, blockSize + 20, output);
-
-    delete[] o_key_pad;
-    delete[] i_key_pad;
-    delete[] initial;
-    delete[] hash_output;
-    delete[] semifinal;
-}
-
-
-uint32_t big_endianify(uint32_t value) {
-    uint32_t out = 0;
-
-    out |= (value & 0xFF << 24);
-    out |= (value & 0xFF00 << 8);
-    out |= (value & 0xFF0000 >> 8);
-    out |= (value & 0xFF000000 >> 24);
-
-    return out;
-}
-
-uint32_t* pbkdf2_xor(uint32_t* a, const uint32_t* b) {
-    a[0] ^= b[0];
-    a[1] ^= b[1];
-    a[2] ^= b[2];
-    a[3] ^= b[3];
-    a[4] ^= b[4];
-
-    return a;
-}
-
-/// Source: https://en.wikipedia.org/wiki/PBKDF2#Key_derivation_process
-std::string pbkdf2(const std::string& password, std::string salt, int iterations, int length) {
-
-    std::string dk;
-
-    std::vector<uint32_t*> T;
-
-    for (int i = 1; i <= ceil(length/20.0); i++) {
-
-
-
-
-        std::vector<uint32_t*> U;
-        U.push_back(new uint32_t[5]);
-
-        salt.push_back((i >> 24) & 0xff);
-        salt.push_back((i >> 16) & 0xff);
-        salt.push_back((i >> 8) & 0xff);
-        salt.push_back(i & 0xff);
-
-        hmac(password, salt, U[0]);
-
-
-
-        for (int c = 2; c <= iterations; c++) {
-            U.push_back(new uint32_t[5]);
-            hmac(password, U[i-1], 20, U[i]);
-            pbkdf2_xor(U[0], U[1]);
-        }
-
-        dk += convert_be(U[0], 20);
-
-        for (auto& j : U) {
-            delete[] j;
-        }
-    }
-
-    return dk.substr(0, length);
-}
-
-
-
-
-
-std::vector<uint32_t> aes_get_round_constants(uint8_t rounds) {
-
-    auto *rc = new uint8_t[rounds + 1];
+    uint8_t rc[rounds + 1];
 
     for (int i = 1; i <= rounds; i++) {
         if (i == 1) {
@@ -469,13 +43,9 @@ std::vector<uint32_t> aes_get_round_constants(uint8_t rounds) {
         }
     }
 
-    std::vector<uint32_t> out(1);
     for (int i = 1; i <= rounds; i++) {
-        out.push_back(rc[i] << 24);
+        output[i] = (rc[i] << 24);
     }
-
-
-    return out;
 }
 
 
@@ -497,31 +67,6 @@ void aes_rotate_state(std::vector<uint32_t>::iterator state) {
         }
     }
 }
-
-/*
-aes affine transformation individual values
-{{1, 0, 0, 0, 1, 1, 1, 1},
-{1, 1, 0, 0, 0, 1, 1, 1},
-{1, 1, 1, 0, 0, 0, 1, 1},
-{1, 1, 1, 1, 0, 0, 0, 1},
-{1, 1, 1, 1, 1, 0, 0, 0},
-{0, 1, 1, 1, 1, 1, 0, 0},
-{0, 0, 1, 1, 1, 1, 1, 0},
-{0, 0, 0, 1, 1, 1, 1, 1}}
- */
-
-/*
- *
-aes affine transformation combined values
- {0b10001111,
-0b11000111,
-0b11100011,
-0b11110001,
-0b11111000,
-0b01111100,
-0b00111110,
-0b00011111}
- */
 
 std::vector<std::vector<uint8_t>> sbox_matrix = {{1, 0, 0, 0, 1, 1, 1, 1},
                                                 {1, 1, 0, 0, 0, 1, 1, 1},
@@ -593,14 +138,8 @@ uint8_t gf2_8_multiplication(uint8_t a, uint8_t b, uint16_t polynomial) {
     uint16_t output = 0;
     uint16_t b_copy = b;
 
-    uint8_t a_bits[8];
-
     for (int i = 0; i < 8; i++) {
-        a_bits[i] = (a >> i) & (0b1);
-    }
-
-    for (int i = 0; i < 8; i++) {
-        if (a_bits[i]) {
+        if ((a >> i) & (0b1)) {
             output ^= b_copy << i;
         }
     }
@@ -656,7 +195,7 @@ uint16_t gf2_8_division(uint16_t a, uint16_t b) {
  * @param polynomial - any irreducible polynomial in binary (AES uses x^8 + x^4 + x^3 + x + 1 or 0b100011011)
  * @return The <b>value</b>'s inverse
  *
- * Uses the Extended Euclidean algorithm
+ * Uses the Extended Euclidean algorithm to find the inverse of the given value in GF(2^8).
  */
 uint8_t gf_2_8_get_value_inverse(const uint8_t value, uint16_t polynomial) {
 
@@ -705,8 +244,6 @@ uint8_t aes_generate_sbox_value(uint8_t value) {
                 (sbox_matrix[i][6] * ((inverse & 0b01000000) >> 6)) ^
                 (sbox_matrix[i][7] * ((inverse & 0b10000000) >> 7))) ^
                 sbox_vector[i];
-
-        // std::cout << (uint16_t)current_bit << std::endl;
 
         result |= current_bit << i;
     }
@@ -781,7 +318,8 @@ uint32_t aes_inverse_sub_word32(uint32_t word) {
  */
 std::vector<uint32_t> aes_get_round_keys(uint8_t n, std::vector<uint32_t> key, uint8_t r) {
     std::vector<uint32_t> w(4 * r);
-    std::vector<uint32_t> rc = aes_get_round_constants(10);
+    uint32_t rc[r];
+    aes_get_round_constants(r, rc);
 
 
     for (int i = 0; i <= n * r; i++) {
@@ -823,21 +361,8 @@ void aes_print_state(const std::vector<uint32_t>& state) {
     std::cout << '\n' << std::dec;
 }
 
-void aes_print_state(std::vector<uint32_t>::iterator state) {
-    for (uint8_t i = 0; i < 4; i++) {
-        for (uint8_t j = 0; j < 4; j++) {
-            std::cout << std::hex << ((state[i] >> (24 - (j * 8))) & 0xff) << ' ';
-        }
-        std::cout << '\n';
-    }
-    std::cout << '\n' << std::dec;
-}
-
 
 void aes_shift_rows(std::vector<uint32_t>& state) {
-
-    uint8_t bytes[4];
-
     std::vector<uint32_t> tmp(4);
 
     for (uint8_t col = 0; col < 4; col++) {
@@ -851,9 +376,6 @@ void aes_shift_rows(std::vector<uint32_t>& state) {
 }
 
 void aes_reverse_shift_rows(std::vector<uint32_t>& state) {
-
-    uint8_t bytes[4];
-
     std::vector<uint32_t> tmp(4);
 
     for (uint8_t col = 0; col < 4; col++) {
@@ -865,11 +387,6 @@ void aes_reverse_shift_rows(std::vector<uint32_t>& state) {
         state[col] = tmp[col];
     }
 }
-
-/*
- aes_mix_column_multiply(2, )
- (b << 1 ^ ((b >> 7 & 1) * polynomial)) << 1 ^ (((b << 1 ^ ((b >> 7 & 1) * polynomial)) >> 7 & 1) * polynomial)
- */
 
 uint8_t aes_mix_column_multiply(uint8_t a, uint8_t b) {
     uint8_t polynomial = 0b00011011;
@@ -885,6 +402,7 @@ uint8_t aes_mix_column_multiply(uint8_t a, uint8_t b) {
             /// b * 2 + b
             return ((b << 1) ^ ((b >> 7 & 1) * polynomial) ^ b);
         case 4: {
+            // b * 2 * 2
             uint8_t b2 = b << 1 ^ ((b >> 7 & 1) * polynomial);
             return b2 << 1 ^ ((b2 >> 7 & 1) * polynomial);
         }
@@ -918,8 +436,8 @@ uint8_t aes_mix_column_multiply(uint8_t a, uint8_t b) {
     }
 }
 
-
-uint32_t aes_mix_column_const(uint32_t value) {
+// This is one implementation of the mix column function that uses matrix multiplication. I prefer the polynomial multiplication for its understandability but this also a correct implementation.
+uint32_t aes_mix_column_matrix(uint32_t value) {
     uint16_t b[] = {(uint8_t)((value >> 24) & 0xff), (uint8_t)((value >> 16) & 0xff),
                     (uint8_t)((value >> 8) & 0xff), (uint8_t)(value & 0xff)};
 
@@ -931,8 +449,8 @@ uint32_t aes_mix_column_const(uint32_t value) {
     return (d[0] << 24) | (d[1] << 16) | (d[2] << 8) | d[3];
 }
 
-uint32_t aes_mix_column(uint32_t value) {
-    uint16_t polynomial = 0b00011011;
+// This is my preferred implementation of the mix column function that uses polynomial multiplication. I prefer it because it uses the math that the matrix multiplication is derived from. This implementation doesn't use magical constants, and so I have an easier time understanding it.
+uint32_t aes_mix_column_polynomial(uint32_t value) {
     uint8_t a[] = {2, 1, 1, 3};
     uint16_t b[] = {(uint8_t)((value >> 24) & 0xff), (uint8_t)((value >> 16) & 0xff),
                    (uint8_t)((value >> 8) & 0xff), (uint8_t)(value & 0xff)};
@@ -947,7 +465,7 @@ uint32_t aes_mix_column(uint32_t value) {
     return ((c[0] ^ c[4]) << 24) | ((c[1] ^ c[5]) << 16) | ((c[2] ^ c[6]) << 8) | c[3];
 }
 
-//
+// This is an alternative inverse which is harder to understand in my opinion, but I left it in in case it help someone understand.
 //uint32_t aes_inverse_mix_column(uint32_t value) {
 //    uint16_t d[] = {(uint8_t)((value >> 24) & 0xff), (uint8_t)((value >> 16) & 0xff),
 //                    (uint8_t)((value >> 8) & 0xff), (uint8_t)(value & 0xff)};
@@ -1017,7 +535,7 @@ void aes_mix_columns(std::vector<uint32_t>& state) {
 
         uint32_t column = aes_extract_column(state, i);
 
-        column = aes_mix_column(column);
+        column = aes_mix_column_polynomial(column);
 
         aes_emplace_column(state, column, i);
     }
@@ -1035,23 +553,6 @@ void aes_inverse_mix_columns(std::vector<uint32_t>& state) {
     }
 }
 
-std::vector<uint32_t> aes_convert(const std::string& data) {
-    int bits = 0;
-
-    std::vector<uint32_t> out = {0, 0, 0, 0};
-
-    for (char ch : data) {
-        out[bits / 32] |= ((ch << (24 - (bits % 32))) & (0xFF << (24 - (bits % 32))));
-
-        bits += 8;
-    }
-
-//    if (data.size() != 16) {
-//        set_byte_in_uint_array(out.data(), data.size() + 1, 0x80);
-//    }
-
-    return out;
-}
 
 /**
  *
@@ -1121,9 +622,12 @@ std::vector<uint32_t> aes_convert(const std::string& data) {
  *
  *
  */
-std::vector<uint32_t> aes_encrypt(const std::string& message, const std::string& key) {
+std::vector<uint32_t> aes_encrypt(std::string message, const std::string& key) {
     const uint8_t rounds = 10;
     const uint8_t key_len = 4;
+
+
+    std::cout << "Encrypting \"" << message << "\" with key: " << key << '\n';
 
     /// TODO: Make it so that all these values are rotated by default
 
@@ -1132,7 +636,6 @@ std::vector<uint32_t> aes_encrypt(const std::string& message, const std::string&
         std::cerr << "AES KEY ERROR: Size of " << key.size() << " is invalid supported sizes are: 16";
         exit(5);
     }
-
     /// Split into 16 byte chunks
     if (message.size() > 16) {
         std::vector<uint32_t> out;
@@ -1142,6 +645,14 @@ std::vector<uint32_t> aes_encrypt(const std::string& message, const std::string&
         }
         return out;
     }
+    else if (message.size() != 16) {
+        message.push_back(0x80);
+
+        while (message.size() != 16) {
+            message.push_back(0);
+        }
+    }
+
 
     std::vector<uint32_t> key_uint = convert_be(key);
     /// Create round keys
@@ -1153,9 +664,13 @@ std::vector<uint32_t> aes_encrypt(const std::string& message, const std::string&
     /// Rotate the state
     std::vector<uint32_t> state = convert_be(message);
     aes_rotate_state(state.begin());
+    std::cout << "Initial State:\n";
+    aes_print_state(state);
 
     /// Add original key to state.
     aes_add_round_key(state, key_uint.begin());
+    std::cout << "First Round Key:\n";
+    aes_print_state(state);
 
     for (int i = 1; i < rounds; i++) {
 
@@ -1163,15 +678,23 @@ std::vector<uint32_t> aes_encrypt(const std::string& message, const std::string&
         for (auto& uint : state) {
             uint = aes_sub_word32(uint);
         }
+        std::cout << i << " Round s-box:\n";
+        aes_print_state(state);
 
         /// Shift Rows
         aes_shift_rows(state);
+        std::cout << i << " Round row shift:\n";
+        aes_print_state(state);
 
         /// Mix Columns
         aes_mix_columns(state);
+        std::cout << i << " Round mix:\n";
+        aes_print_state(state);
 
         // Add Round Key
         aes_add_round_key(state, round_keys.begin() + (i * 4));
+        std::cout << i << " Round add round key:\n";
+        aes_print_state(state);
     }
 
 
@@ -1194,6 +717,8 @@ std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::
     const uint8_t rounds = 10;
     const uint8_t key_len = 4;
 
+    std::cout << "Decrypting with key: " << key << '\n';
+
     /// TODO: Make it so that all these values are rotated by default
 
     /// Verify key length
@@ -1206,7 +731,7 @@ std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::
     if (data.size() > 4) {
         std::vector<uint32_t> out;
         for (uint16_t i = 0; (i * 4) < data.size(); i++) {
-            std::vector<uint32_t> sub_result = aes_decrypt(std::vector<uint32_t>(data.begin() + i * 16, data.begin() + ((i + 1) * 16)), key);
+            std::vector<uint32_t> sub_result = aes_decrypt(std::vector<uint32_t>(data.begin() + i * 4, data.begin() + ((i + 1) * 4)), key);
             out.insert(out.end(), sub_result.begin(), sub_result.end());
         }
         return out;
@@ -1276,37 +801,13 @@ std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::
 }
 
 int main() {
-
-    std::string password = "peanuts";
-    int iterations = 1;
-    std::string salt = "saltysalt";
-    int length = 16;
-
-
-    std::string dk = pbkdf2(password, salt, iterations, length);
-
-
      std::string msg = "Two One Nine Two";
 
      std::string key_str = "Thats my Kung Fu";
 
     std::vector<uint32_t> state = aes_encrypt(msg, key_str);
 
-    aes_decrypt(state, key_str);
-
-//    76 31 30 82 14 9f df 0a 02 8d b2 3d 54 fb 7e 87
-//    5b 35 e4 60 8c 7b 8d 5a d6 36 19 13 7a 83 13 6a
-//    7d ba d3 e7 4a b7 28 8a 88 d7 09 e8 33 43 5d 93
-//    88 f5 d6 6c 72 78 0b 84 77 28 45 94 eb d2 05 5d
-//    fe 47 2a 3f 8a af 0e 2e bd 0b 15 2b c0 f4 6f e0
-//    7e 5a 96 31 1a 40 2c a6 38 52 5f 83 4b b5 93 89
-//    1a ff bc e8 7c 9b 6b 75 a6 9f 8a ee 0a ec f7 67
-//    dd b2 78 1b 58 96 5f 5a 07 e8 d3 76 12 93 51 41
-//    4e a9 18 3a 72 98 5c 7a 1e 6b d6 1b f5 5e 85 4a
-//    16 6e 4b d4 f9 42 c5 ad 95 83 ff 28 b0 d8 0b 35
-//    8e cf 31
-
-    // std::string msg = "igjf6EKtqiytAqR0JegED1DMkk6oI54RI43HmAx6Ff4-1665116978-0-AU3TNGQM8/hOMzG8mp/CCQ56ogheWfHKwSqjf10nji2iLegLY+GPYdYsLAwnMw4pWF5BwzASnhAieZq+ca1Jnf8=";
+    std::vector<uint32_t> original = aes_decrypt(state, key_str);
 
     return 0;
 }
