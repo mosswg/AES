@@ -74,16 +74,12 @@ else if $(i \mod N) = 0$ then $W_{i} = W_{i-N} \oplus SubWord(RotWord(W_{i-1})) 
 else if $N > 6$ and $(i \mod N) = 4$ then $W_{i} = W_{i-N} \oplus SubWord(W_{i-1})$ \
 else $W_{i} = W_{i-N} \oplus W_{i-1}$ \
 \
-These keys are placed into an array of 32-bit value where each set of four values represent a round key. The first round key is always the original key. \
-The same formula is used for AES-192 and AES-256 with N being a higher value (6 and 8 respectively). Each round key is still 128-but but since the original key is larger than the state it is split into two round keys. \
-The same keys are used for reversing the encryption however the are used in reverse. e.g. for AES-128 the 10th round key is used in place of the original key and vice versa.
+These keys are placed into an array of 32-bit value where each set of four values represent a round key. The first round key is always the original key. The same formula is used for AES-192 and AES-256 with N being a higher value (6 and 8 respectively). Each round key is still 128-but but since the original key is larger than the state it is split into two round keys. The same keys are used for reversing the encryption however the are used in reverse. e.g. for AES-128 the 10th round key is used in place of the original key and vice versa.
 
 ### Add Round Key
 #### Encryption
 Using the round key of the current round gotten from the key expansion, each byte of the round key is xored with the state. This is done with the following where each value is 32-bit and b is the state before the operation, w is the round key, and s is the resulting state. \
-$$
-[ b_{0}		b_{1}		b_{2}		b_{3} ] \oplus [ w_{0}		w_{1}		w_{2}		w_{3} ] = [ s_{0}		s_{1}		s_{2}		s_{3} ]
-$$
+$[ b_{0}		b_{1}		b_{2}		b_{3} ] \oplus [ w_{0}		w_{1}		w_{2}		w_{3} ] = [ s_{0}		s_{1}		s_{2}		s_{3} ]$
 #### Decryption
 Since addition is the same as substraction in GF( $2^8$ ) the encryption and decryption methods are the same for this step.
 
@@ -127,12 +123,20 @@ It is important to not that the generating polynomial is not a valid value withi
 #### Finite Field Addition
 All addition in a finite field must be done modulo $p$. Since $p$ is always 2 in this project that means that all addition is modulo 2. Since addition modulo 2 is the same as the xor operation we can save a lot of computation time by just using xor instead of any addition operation.
 
-#### Finite Field Substraction
+#### Finite Field Subtraction
 Since every addition operation is modulo 2 and there is no concept of negative numbers in GF( $2^8$ ) every substraction is the exact same as addition and there for is just an xor operation.
 
 #### Finite Field Multiplication
 Multiplication between two values on the finite field is significantly more complex. Multiplication can be acheive by taking the placement of every bit of one value and shifting the second value by that placement and xoring each of these together. The result of the muliplication is moduloed by the generating polynomial and the result of this modulo is the result of the multiplication. Example: \
 $5 \cdot 5$ = $[ 1 0 1 ] \cdot [ 1 0 1 ]$ = $[ 1 0 1 ] \cdot [ 1 0 0 ] \oplus [ 1 0 1 ] \cdot [ 0 0 1 ]$ = $[ 1 0 1 ] << 2 \oplus [ 1 0 1 ] << 0$ = $[ 1 0 1 0 0 ] \oplus [ 0 0 1 0 1 ]$ = $[ 1 0 0 0 1 ]$ = 17 \
 For this example $5 \cdot 5$ is less than the generating polynomial so the modulo is not done, however the result is still different due to using addition modulo 2.
+
+#### Finite Field Division
+Division between two values in GF( $2^8$ ) is done the same way as long division, however we use [Finite Field Subtraction](#finite-field-subtraction). \
+Example: \
+$10 / 7$ = $[ 1 0 1 0 ] / [ 1 1 1 ]$: \
+1. $[ 1 0 1 0] \oplus [ 1 1 1 ] \cdot 2^1$ = $[ 1 0 1 0 ] \oplus [ 1 1 1 0 ]$ = $[ 0 1 0 0 ]$ \
+2. $[ 0 1 0 0] \oplus [ 1 1 1 ] \cdot 2^0$ = $[ 0 1 1 ]$ \
+Thus the result is 3 and the remainder is 3.
 
 #### Finite Field Inverse
