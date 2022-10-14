@@ -169,4 +169,5 @@ We can then create a table of our results
 | $[ 0 0 0 0 1 0 1 0 1 ]$ |                    | $1$                                                        |
 | $[ 0 0 0 0 0 1 0 1 0 ]$ | $2^4 + 2^2 + 2^0$  | $2^4 + 2^2 + 2^0$                                          |
 | $[ 0 0 0 0 0 0 0 0 1 ]$ | $2^1$              | $1 + 2^1 \cdot ( 2^4 + 2^2 + 2^0)$ = $2^5 + 2^3 + 2^1 + 1$ |
-We take the auxiliary when our remainder is 1 and that is our inverse. So the inverse of 0x15 with the AES generating polynomial is $2^5 + 2^3 + 2^1 + 1$ or 0x2b \
+
+We take the auxiliary when our remainder is 1 and that is our inverse. So the inverse of 0x15 with the AES generating polynomial is $2^5 + 2^3 + 2^1 + 1$ or 0x2b
