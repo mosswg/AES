@@ -777,18 +777,17 @@ std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::
         aes_inverse_mix_columns(state);
         std::cout << i << " Round mix:\n";
         aes_print_state(state);
-
+        
+        /// Shift Rows
+        aes_reverse_shift_rows(state);
+        std::cout << i << " Round shift:\n";
+        aes_print_state(state);
 
         /// Sub-byte the state
         for (auto& uint : state) {
             uint = aes_inverse_sub_word32(uint);
         }
         std::cout << i << " Round s-box:\n";
-        aes_print_state(state);
-
-        /// Shift Rows
-        aes_reverse_shift_rows(state);
-        std::cout << i << " Round shift:\n";
         aes_print_state(state);
     }
 
