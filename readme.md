@@ -59,7 +59,8 @@ Decryption has the same number of round as encryption. The difference is that th
 if $i = 1$ then $rc_{i} = 1$ \
 if $i > 1$ and $rc_{i-1} < 0x80$ then $rc_{i} = 2 \cdot rc_{i-1}$ \
 if $i > 1$ and $rc_{i-1} > 0x80$ then $rc_{i} = 2 \cdot rc_{i-1} \oplus 0x11b$ \
-$rc$ values are then expanded from an byte value into four byte round constant values with: [ $rc_{i}$		$0$		$0$		$0$ ] \
+\
+$rc$ values are then expanded from an byte value into four byte round constant values with: [ $rc_{i}$		$0$		$0$		$0$ ]
 
 ### Key Expansion
 The key expansion uses [Round Constants](#round-constants) and two functions:
@@ -71,11 +72,10 @@ if $i < N$ then $W_{i} = K_{i}$ \
 else if $(i \mod N) = 0$ then $W_{i} = W_{i-N} \oplus SubWord(RotWord(W_{i-1})) \oplus rcon_{i / N}$ \
 else if $N > 6$ and $(i \mod N) = 4$ then $W_{i} = W_{i-N} \oplus SubWord(W_{i-1})$ \
 else $W_{i} = W_{i-N} \oplus W_{i-1}$ \
+\
 These keys are placed into an array of 32-bit value where each set of four values represent a round key. The first round key is always the original key. \
-\
 The same formula is used for AES-192 and AES-256 with N being a higher value (6 and 8 respectively). Each round key is still 128-but but since the original key is larger than the state it is split into two round keys. \
-\
-The same keys are used for reversing the encryption however the are used in reverse. e.g. for AES-128 the 10th round key is used in place of the original key and vice versa. \
+The same keys are used for reversing the encryption however the are used in reverse. e.g. for AES-128 the 10th round key is used in place of the original key and vice versa.
 
 ### Add Round Key
 #### Encryption
