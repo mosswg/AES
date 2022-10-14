@@ -9,7 +9,7 @@ This project is vulnerable to a number of attacks and makes no attempt to guard 
 
 # How it works
 ## Overview
-There are a different number of rounds based on the key size (128-bit, 196-bit, or 256-bit). This project uses 128-bit keys because they require the least amount of work. The steps are the same for each key size you just do more of the same step for the larger keys. The AES algorithm is broken into rounds. They also include a few initial steps and a few proceeding steps. The bytes of the message are referred to as the "state". AES operates within a [GF(2^8) finite field](#finite-field-math). While understanding finite field arithmatic is not strictly necessary for understanding AES implemations it is necessary for understanding the math behind the algorithm.
+There are a different number of rounds based on the key size (128-bit, 196-bit, or 256-bit). This project uses 128-bit keys because they require the least amount of work. The steps are the same for each key size you just do more of the same step for the larger keys. The AES algorithm is broken into rounds. They also include a few initial steps and a few proceeding steps. The bytes of the message are referred to as the "state". AES operates within a [GF( $2^8$ ) finite field](#finite-field-math). While understanding finite field arithmatic is not strictly necessary for understanding AES implemations it is necessary for understanding the math behind the algorithm.
 
 ## Notation
 $\oplus$ denotes an xor operation. \
@@ -85,9 +85,24 @@ $$
 [ b_{0}		b_{1}		b_{2}		b_{3} ] \oplus [ w_{0}		w_{1}		w_{2}		w_{3} ] = [ s_{0}		s_{1}		s_{2}		s_{3} ]
 $$
 #### Decryption
-Since addition is the same as substraction in GF(2^8) the encryption and decryption methods are the same.
+Since addition is the same as substraction in GF( $2^8$ ) the encryption and decryption methods are the same for this step.
 
 ### Sub Bytes
+S-Box Arrays: [Wikipedia](https://en.wikipedia.org/wiki/Rijndael_S-box)
+#### Encryption
+The Sub Bytes step uses an array of 256-bytes indexed with each byte in the state and the result in placed back into the state in the same position. The pre-computed S-Box values can be found at the link above.
+#### Decryption
+The Inverse of Sub Bytes is the same process with an inverse array. This can be found in the link above.
+#### Deriving the S-Box Array
+The values of the S-Box are found by the following steps: \
+1. [Byte Inverse](#finite-field-inverse) - The inverse of the byte in GF( $2^8$ ) is found. We'll call this $b$ where $b_{i}$ is a single bit and $b_{0}$ is the least significant bit for the other steps.
+2. Affine Transformation:
+	1. Matrix Multiplication - The bits of the inverse are used in a matrix multiplication in GF( $2^8$ ).
+	2. Vector Addition - The bits resulting from the Matrix Multiplaction are then xored with the bits representing 0x63.
+
+${\displaystyle {\begin{bmatrix}s_{0}\\s_{1}\\s_{2}\\s_{3}\\s_{4}\\s_{5}\\s_{6}\\s_{7}\end{bmatrix}}={\begin{bmatrix}1&0&0&0&1&1&1&1\\1&1&0&0&0&1&1&1\\1&1&1&0&0&0&1&1\\1&1&1&1&0&0&0&1\\1&1&1&1&1&0&0&0\\0&1&1&1&1&1&0&0\\0&0&1&1&1&1&1&0\\0&0&0&1&1&1&1&1\end{bmatrix}}{\begin{bmatrix}b_{0}\\b_{1}\\b_{2}\\b_{3}\\b_{4}\\b_{5}\\b_{6}\\b_{7}\end{bmatrix}}+{\begin{bmatrix}1\\1\\0\\0\\0\\1\\1\\0\end{bmatrix}}}$ \
+\
+The inverse S-Box array can be found by simply swapping the values and indexes of the S-Box array.
 
 
 ### Shift Rows
