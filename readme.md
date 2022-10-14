@@ -113,4 +113,26 @@ The inverse S-Box array can be found by simply swapping the values and indexes o
 
 
 ### Finite Field Math
-Other Resources: [Wikipedia](https://en.wikipedia.org/wiki/Finite_field_arithmetic)
+Other Resources: [Wikipedia](https://en.wikipedia.org/wiki/Finite_field_arithmetic) \
+Notes: This project uses Galois Field and Finite Field interchangably and unless explicitly stated the generating polynomial is $x^8 + x^4 + x^3 + x + 1$.
+#### Basics
+Finite Fields are a field containing a finite number of elements from 0 to $p^n$ where $p$ is a prime and $n$ is a positive integer. For all math in this project $p$ is 2 and $n$ is 8 giving us the field GF( $2^8$ ).
+Any number in GF( $2^8$ ) can be represented as a polynomial with: \
+$b_{7}p^7 + b_{6}p^6 + b_{5}p^5 + b_{4}p^4 + b_{3}p^3 + b_{2}p^2 + b_{1}p^1 + b_{0}p^1$ \
+Where $b$ is any 8-bit value and $b_{i}$ is the bit at $i$. And $p$ is 2 \
+In an similar way the generating polynomial can be written as: \
+$2^8 + 2^4 + 2^3 + 2 + 1$ or $[ 1 0 0 0 1 1 0 1 1 ]$ or $0x11b$ \
+It is important to not that the generating polynomial is not a valid value within GF( $2^8$ ).
+
+#### Finite Field Addition
+All addition in a finite field must be done modulo $p$. Since $p$ is always 2 in this project that means that all addition is modulo 2. Since addition modulo 2 is the same as the xor operation we can save a lot of computation time by just using xor instead of any addition operation.
+
+#### Finite Field Substraction
+Since every addition operation is modulo 2 and there is no concept of negative numbers in GF( $2^8$ ) every substraction is the exact same as addition and there for is just an xor operation.
+
+#### Finite Field Multiplication
+Multiplication between two values on the finite field is significantly more complex. Multiplication can be acheive by taking the placement of every bit of one value and shifting the second value by that placement and xoring each of these together. The result of the muliplication is moduloed by the generating polynomial and the result of this modulo is the result of the multiplication. Example: \
+$5 \cdot 5$ = $[ 1 0 1 ] \cdot [ 1 0 1 ]$ = $[ 1 0 1 ] \cdot [ 1 0 0 ] \oplus [ 1 0 1 ] \cdot [ 0 0 1 ]$ = $[ 1 0 1 ] << 2 \oplus [ 1 0 1 ] << 0$ = $[ 1 0 1 0 0 ] \oplus [ 0 0 1 0 1 ]$ = $[ 1 0 0 0 1 ]$ = 17 \
+For this example $5 \cdot 5$ is less than the generating polynomial so the modulo is not done, however the result is still different due to using addition modulo 2.
+
+#### Finite Field Inverse
