@@ -70,7 +70,7 @@ The key expansion uses [Round Constants](#round-constants) and two functions:
 The key expansion is done following the formula where N is key size in 32-bit words (e.g. for AES-128 N is 4), K is byte array of the key, and W is the array of byte representing the round keys: \
 \
 if $i < N$ then $W_{i} = K_{i}$ \
-else if $(i \mod N) = 0$ then $W_{i} = W_{i-N} \oplus SubWord(RotWord(W_{i-1})) \oplus rcon_{i / N}$ \
+else if $(i \mod N) = 0$ then $W_{i} = W_{i-N} \oplus SubWord(RotWord(W_{i-1})) \oplus rcon_{i\ /\ N}$ \
 else if $N > 6$ and $(i \mod N) = 4$ then $W_{i} = W_{i-N} \oplus SubWord(W_{i-1})$ \
 else $W_{i} = W_{i-N} \oplus W_{i-1}$ \
 \
@@ -79,7 +79,7 @@ These keys are placed into an array of 32-bit value where each set of four value
 ### Add Round Key
 #### Encryption
 Using the round key of the current round gotten from the key expansion, each byte of the round key is xored with the state. This is done with the following where each value is 32-bit and b is the state before the operation, w is the round key, and s is the resulting state. \
-$[ b_{0}		b_{1}		b_{2}		b_{3} ] \oplus [ w_{0}		w_{1}		w_{2}		w_{3} ] = [ s_{0}		s_{1}		s_{2}		s_{3} ]$
+$[ b_{0}\ b_{1}\ b_{2}\ b_{3} ] \oplus [ w_{0}\ w_{1}\ w_{2}\ w_{3} ] = [ s_{0}\ s_{1}\ s_{2}\ s_{3} ]$
 #### Decryption
 Since addition is the same as substraction in GF( $2^8$ ) the encryption and decryption methods are the same for this step.
 
@@ -96,8 +96,6 @@ The values of the S-Box are found by the following steps: \
 	1. Matrix Multiplication - The bits of the inverse are used in a matrix multiplication in GF( $2^8$ ).
 	2. Vector Addition - The bits resulting from the Matrix Multiplaction are then xored with the bits representing 0x63.
 
-${\displaystyle {\begin{bmatrix}s_{0}\\s_{1}\\s_{2}\\s_{3}\\s_{4}\\s_{5}\\s_{6}\\s_{7}\end{bmatrix}}={\begin{bmatrix}1&0&0&0&1&1&1&1\\1&1&0&0&0&1&1&1\\1&1&1&0&0&0&1&1\\1&1&1&1&0&0&0&1\\1&1&1&1&1&0&0&0\\0&1&1&1&1&1&0&0\\0&0&1&1&1&1&1&0\\0&0&0&1&1&1&1&1\end{bmatrix}}{\begin{bmatrix}b_{0}\\b_{1}\\b_{2}\\b_{3}\\b_{4}\\b_{5}\\b_{6}\\b_{7}\end{bmatrix}}+{\begin{bmatrix}1\\1\\0\\0\\0\\1\\1\\0\end{bmatrix}}}$ \
-\
 The inverse S-Box array can be found by simply swapping the values and indexes of the S-Box array.
 
 
@@ -108,10 +106,10 @@ The inverse S-Box array can be found by simply swapping the values and indexes o
 
 
 
-### Finite Field Math
+## Finite Field Math
 Other Resources: [Wikipedia](https://en.wikipedia.org/wiki/Finite_field_arithmetic), [Galois Field in Cryptography](https://sites.math.washington.edu/~morrow/336_12/papers/juan.pdf) \
 Notes: This project uses Galois Field and Finite Field interchangably and unless explicitly stated the generating polynomial is $x^8 + x^4 + x^3 + x + 1$.
-#### Basics
+### Basics
 Finite Fields are a field containing a finite number of elements from 0 to $p^n$ where $p$ is a prime and $n$ is a positive integer. For all math in this project $p$ is 2 and $n$ is 8 giving us the field GF( $2^8$ ).
 Any number in GF( $2^8$ ) can be represented as a polynomial with: \
 $b_{7}p^7 + b_{6}p^6 + b_{5}p^5 + b_{4}p^4 + b_{3}p^3 + b_{2}p^2 + b_{1}p^1 + b_{0}p^1$ \
@@ -120,26 +118,27 @@ In an similar way the generating polynomial can be written as: \
 $2^8 + 2^4 + 2^3 + 2 + 1$ or $[ 1 0 0 0 1 1 0 1 1 ]$ or $0x11b$ \
 It is important to not that the generating polynomial is not a valid value within GF( $2^8$ ).
 
-#### Finite Field Addition
+### Finite Field Addition
 All addition in a finite field must be done modulo $p$. Since $p$ is always 2 in this project that means that all addition is modulo 2. Since addition modulo 2 is the same as the xor operation we can save a lot of computation time by just using xor instead of any addition operation.
 
-#### Finite Field Subtraction
+### Finite Field Subtraction
 Since every addition operation is modulo 2 and there is no concept of negative numbers in GF( $2^8$ ) every substraction is the exact same as addition and there for is just an xor operation.
 
-#### Finite Field Multiplication
+### Finite Field Multiplication
 Multiplication between two values on the finite field is significantly more complex. Multiplication can be acheive by taking the placement of every bit of one value and shifting the second value by that placement and xoring each of these together. The result of the muliplication is moduloed by the generating polynomial and the result of this modulo is the result of the multiplication. Example: \
-$5 \cdot 5$ = $[ 1 0 1 ] \cdot [ 1 0 1 ]$ = $[ 1 0 1 ] \cdot [ 1 0 0 ] \oplus [ 1 0 1 ] \cdot [ 0 0 1 ]$ = $[ 1 0 1 ] << 2 \oplus [ 1 0 1 ] << 0$ = $[ 1 0 1 0 0 ] \oplus [ 0 0 1 0 1 ]$ = $[ 1 0 0 0 1 ]$ = 17 \
+$5 \cdot 5$ = $[ 1 0 1 ] \cdot [ 1 0 1 ]$ = $[ 1 0 1 ] \cdot [ 1 0 0 ] \oplus [ 1 0 1 ] \cdot [ 0 0 1 ]$ = $[ 1 0 1 ] \cdot 2^2 \oplus [ 1 0 1 ] \cdot 2^0$ = $[ 1 0 1 0 0 ] \oplus [ 0 0 1 0 1 ]$ = $[ 1 0 0 0 1 ]$ = 17 \
 For this example $5 \cdot 5$ is less than the generating polynomial so the modulo is not done, however the result is still different due to using addition modulo 2.
 
-#### Finite Field Division
+### Finite Field Division
 Division between two values in GF( $2^8$ ) is done the same way as long division, however we use [Finite Field Subtraction](#finite-field-subtraction). \
 Example: \
-$10 / 7$ = $[ 1 0 1 0 ] / [ 1 1 1 ]$:
+$10\ /\ 7$ = $[ 1 0 1 0 ]\ /\ [ 1 1 1 ]$:
 1. $[ 1 0 1 0] \oplus [ 1 1 1 ] \cdot 2^1$ = $[ 1 0 1 0 ] \oplus [ 1 1 1 0 ]$ = $[ 0 1 0 0 ]$
 2. $[ 0 1 0 0] \oplus [ 1 1 1 ] \cdot 2^0$ = $[ 0 1 1 ]$ \
+
 Thus the result is $2^1 + 2^0$ or 3 and the remainder is $[ 0 1 1 ]$ or 3.
 
-#### Finite Field Inverse
+### Finite Field Inverse
 Finding the inverse in a finite field can be done with a modified version of the [Extended Euclidean Algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm). The difference is instead of finding $s_{i}$ and $t_{i}$ we find the auxiliary. The auxiliary is found using the following formula where a is the auxiliary and q is the quotient \
 $a_{0} = 0$ \
 $a_{1} = 1$ \
@@ -149,14 +148,14 @@ We use the reducing polynomial as the dividend and the number we want to find th
 For example to find the inverse of 0x15: \
 \
 First we divide the generating polynomial by 0x15: \
-$[ 1 0 0 0 1 1 0 1 1 ] / [ 0 0 0 0 1 0 1 0 1 ]$ \
+$[ 1 0 0 0 1 1 0 1 1 ]\ /\ [ 0 0 0 0 1 0 1 0 1 ]$ \
 $[ 1 0 0 0 1 1 0 1 1 ] \oplus [ 0 0 0 0 1 0 1 0 1 ] \cdot 2^4$ = $[ 1 0 0 0 1 1 0 1 1 ] \oplus [ 1 0 1 0 1 0 0 0 0 ]$ = $[ 0 0 1 0 0 1 0 1 1 ]$ \
 $[ 0 0 1 0 0 1 0 1 1 ] \oplus [ 0 0 0 0 1 0 1 0 1 ] \cdot 2^2$ = $[ 0 0 1 0 0 1 0 1 1 ] \oplus [ 0 0 1 0 1 0 1 0 0 ]$ = $[ 0 0 0 0 1 1 1 1 1 ]$ \
 $[ 0 0 0 0 1 1 1 1 1 ] \oplus [ 0 0 0 0 1 0 1 0 1 ] \cdot 2^0$ = $[ 0 0 0 0 1 1 1 1 1 ] \oplus [ 0 0 0 0 1 0 1 0 1 ]$ = $[ 0 0 0 0 0 1 0 1 0 ]$ \
 The quotient of the first division is $2^4 + 2^2 + 2^0$ and the remainder is $[ 0 0 0 0 0 1 0 1 0]$ \
 \
 We then divide 0x15 by this result: \
-$[ 1 0 1 0 1 ] / [ 0 1 0 1 0]$ \
+$[ 1 0 1 0 1 ]\ /\ [ 0 1 0 1 0]$ \
 $[ 1 0 1 0 1 ] \oplus [ 0 1 0 1 0] \cdot 2^1$ = $[ 1 0 1 0 1 ] \oplus [ 1 0 1 0 0 ]$ = $[0 0 0 0 1]$ \
 The quotient is $2^1$ and the remainder is $[ 0 0 0 0 1 ]$ \
 \
@@ -167,7 +166,7 @@ We can then create a table of our results
 | ----------------------- | ------------------ | ---------------------------------------------------------- |
 | $[ 1 0 0 0 1 1 0 1 1 ]$ |	                   | $0$                                                        |
 | $[ 0 0 0 0 1 0 1 0 1 ]$ |                    | $1$                                                        |
-| $[ 0 0 0 0 0 1 0 1 0 ]$ | $2^4 + 2^2 + 2^0$  | $2^4 + 2^2 + 2^0$                                          |
+| $[ 0 0 0 0 0 1 0 1 0 ]$ | $2^4 + 2^2 + 2^0$  | $1(2^4 + 2^2 + 2^0) + 0$ = $2^4 + 2^2 + 2^0$               |
 | $[ 0 0 0 0 0 0 0 0 1 ]$ | $2^1$              | $1 + 2^1 \cdot ( 2^4 + 2^2 + 2^0)$ = $2^5 + 2^3 + 2^1 + 1$ |
 
 We take the auxiliary when our remainder is 1 and that is our inverse. So the inverse of 0x15 with the AES generating polynomial is $2^5 + 2^3 + 2^1 + 1$ or 0x2b
