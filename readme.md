@@ -68,6 +68,7 @@ The key expansion uses [Round Constants](#round-constants) and two functions:
 * SubWord - a direct substituition using the [S-Box](#sub-bytes).
 
 The key expansion is done following the formula where N is key size in 32-bit words (e.g. for AES-128 N is 4), K is byte array of the key, and W is the array of byte representing the round keys: \
+\
 if $i < N$ then $W_{i} = K_{i}$ \
 else if $(i \mod N) = 0$ then $W_{i} = W_{i-N} \oplus SubWord(RotWord(W_{i-1})) \oplus rcon_{i / N}$ \
 else if $N > 6$ and $(i \mod N) = 4$ then $W_{i} = W_{i-N} \oplus SubWord(W_{i-1})$ \
@@ -79,7 +80,10 @@ The same keys are used for reversing the encryption however the are used in reve
 
 ### Add Round Key
 #### Encryption
-Using the current round key gotten from the key expansion, each byte of the round key is xored with the state.
+Using the round key of the current round gotten from the key expansion, each byte of the round key is xored with the state. This is done with the following where each value is 32-bit and b is the state before the operation, w is the round key, and s is the resulting state. \
+$$
+[ b_{0}		b_{1}		b_{2}		b_{3} ] \oplus [ w_{0}		w_{1}		w_{2}		w_{3} ] = [ s_{0}		s_{1}		s_{2}		s_{3} ]
+$$
 #### Decryption
 Since addition is the same as substraction in GF(2^8) the encryption and decryption methods are the same.
 
