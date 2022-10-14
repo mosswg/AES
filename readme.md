@@ -109,7 +109,7 @@ The inverse S-Box array can be found by simply swapping the values and indexes o
 
 
 ### Finite Field Math
-Other Resources: [Wikipedia](https://en.wikipedia.org/wiki/Finite_field_arithmetic) \
+Other Resources: [Wikipedia](https://en.wikipedia.org/wiki/Finite_field_arithmetic), [Galois Field in Cryptography](https://sites.math.washington.edu/~morrow/336_12/papers/juan.pdf) \
 Notes: This project uses Galois Field and Finite Field interchangably and unless explicitly stated the generating polynomial is $x^8 + x^4 + x^3 + x + 1$.
 #### Basics
 Finite Fields are a field containing a finite number of elements from 0 to $p^n$ where $p$ is a prime and $n$ is a positive integer. For all math in this project $p$ is 2 and $n$ is 8 giving us the field GF( $2^8$ ).
@@ -134,9 +134,40 @@ For this example $5 \cdot 5$ is less than the generating polynomial so the modul
 #### Finite Field Division
 Division between two values in GF( $2^8$ ) is done the same way as long division, however we use [Finite Field Subtraction](#finite-field-subtraction). \
 Example: \
-$10 / 7$ = $[ 1 0 1 0 ] / [ 1 1 1 ]$: \
-1. $[ 1 0 1 0] \oplus [ 1 1 1 ] \cdot 2^1$ = $[ 1 0 1 0 ] \oplus [ 1 1 1 0 ]$ = $[ 0 1 0 0 ]$ \
+$10 / 7$ = $[ 1 0 1 0 ] / [ 1 1 1 ]$:
+1. $[ 1 0 1 0] \oplus [ 1 1 1 ] \cdot 2^1$ = $[ 1 0 1 0 ] \oplus [ 1 1 1 0 ]$ = $[ 0 1 0 0 ]$
 2. $[ 0 1 0 0] \oplus [ 1 1 1 ] \cdot 2^0$ = $[ 0 1 1 ]$ \
-Thus the result is 3 and the remainder is 3.
+Thus the result is $2^1 + 2^0$ or 3 and the remainder is $[ 0 1 1 ]$ or 3.
 
 #### Finite Field Inverse
+Finding the inverse in a finite field can be done with a modified version of the [Extended Euclidean Algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm). The difference is instead of finding $s_{i}$ and $t_{i}$ we find the auxiliary. The auxiliary is found using the following formula where a is the auxiliary and q is the quotient \
+$a_{0} = 0$ \
+$a_{1} = 1$ \
+$a_{n} = a_{n - 2} \oplus a_{n - 1} \cdot q_{n}$ \
+\
+We use the reducing polynomial as the dividend and the number we want to find the inverse of as the divisor. \
+For example to find the inverse of 0x15: \
+\
+First we divide the generating polynomial by 0x15: \
+$[ 1 0 0 0 1 1 0 1 1 ] / [ 0 0 0 0 1 0 1 0 1 ]$ \
+$[ 1 0 0 0 1 1 0 1 1 ] \oplus [ 0 0 0 0 1 0 1 0 1 ] \cdot 2^4$ = $[ 1 0 0 0 1 1 0 1 1 ] \oplus [ 1 0 1 0 1 0 0 0 0 ]$ = $[ 0 0 1 0 0 1 0 1 1 ]$ \
+$[ 0 0 1 0 0 1 0 1 1 ] \oplus [ 0 0 0 0 1 0 1 0 1 ] \cdot 2^2$ = $[ 0 0 1 0 0 1 0 1 1 ] \oplus [ 0 0 1 0 1 0 1 0 0 ]$ = $[ 0 0 0 0 1 1 1 1 1 ]$ \
+$[ 0 0 0 0 1 1 1 1 1 ] \oplus [ 0 0 0 0 1 0 1 0 1 ] \cdot 2^0$ = $[ 0 0 0 0 1 1 1 1 1 ] \oplus [ 0 0 0 0 1 0 1 0 1 ]$ = $[ 0 0 0 0 0 1 0 1 0 ]$ \
+The quotient of the first division is $2^4 + 2^2 + 2^0$ and the remainder is $[ 0 0 0 0 0 1 0 1 0]$ \
+\
+We then divide 0x15 by this result: \
+$[ 1 0 1 0 1 ] / [ 0 1 0 1 0]$ \
+$[ 1 0 1 0 1 ] \oplus [ 0 1 0 1 0] \cdot 2^1$ = $[ 1 0 1 0 1 ] \oplus [ 1 0 1 0 0 ]$ = $[0 0 0 0 1]$ \
+The quotient is $2^1$ and the remainder is $[ 0 0 0 0 1 ]$ \
+\
+The next step would be to divide the previous remainder by this remainder until our remainder is 1 but since this remainder is one we'll stop here. \
+\
+We can then create a table of our results
+<pre>
+Remainder					Quotient			Auxiliary \
+$[ 1 0 0 0 1 1 0 1 1 ]$		$$					$0$ \
+$[ 0 0 0 0 1 0 1 0 1 ]$		$$					$1$ \
+$[ 0 0 0 0 0 1 0 1 0 ]$		$2^4 + 2^2 + 2^0$	$2^4 + 2^2 + 2^0$ \
+$[ 0 0 0 0 0 0 0 0 1 ]$ 	$2^1$ 				$1 + 2^1 \cdot ( 2^4 + 2^2 + 2^0)$ = $2^5 + 2^3 + 2^1 + 1$ \
+We take the auxiliary when our remainder is 1 and that is our inverse. So the inverse of 0x15 with the AES generating polynomial is $2^5 + 2^3 + 2^1 + 1$ or 0x2b \
+</pre>
