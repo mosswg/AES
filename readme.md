@@ -1,4 +1,4 @@
-# This project is not cryptographically safe
+# This project is not cryptographically secure
 This project is vulnerable to a number of attacks and makes no attempt to guard against them. This project has the primary purpose of making an AES implementation that is somewhat easy to understand and isn't hidden behind layers of abstraction. This project is hopefully a good learning tool for the basics of AES and can be used to further understand the nuances of different types. 
 
 # Resources use
