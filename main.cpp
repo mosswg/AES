@@ -53,21 +53,6 @@ uint32_t aes_rot_word(uint32_t word) {
     return rotateleft(word, 8);
 }
 
-void aes_rotate_state(std::vector<uint32_t>::iterator state) {
-    std::vector<uint32_t> state_copy(4);
-
-    for (int i = 0; i < 4; i++) {
-        state_copy[i] = state[i];
-    }
-
-    for (uint8_t i = 0; i < 4; i++) {
-        for (uint8_t j = 0; j < 4; j++) {
-            state[j] &= ~(0xff << (24 - (8 * i)));
-            state[j] |= (((state_copy[i] >> (24 - (8 * j))) & 0xff) << (24 - (8 * i)));
-        }
-    }
-}
-
 std::vector<std::vector<uint8_t>> sbox_matrix = {{1, 0, 0, 0, 1, 1, 1, 1},
                                                 {1, 1, 0, 0, 0, 1, 1, 1},
                                                 {1, 1, 1, 0, 0, 0, 1, 1},
@@ -337,10 +322,6 @@ std::vector<uint32_t> aes_get_round_keys(uint8_t n, std::vector<uint32_t> key, u
         }
     }
 
-    for (int i = 0; i <= r; i++) {
-        aes_rotate_state(w.begin() + (n * i));
-    }
-
     return w;
 }
 
@@ -351,10 +332,40 @@ void aes_add_round_key(std::vector<uint32_t>& state, std::vector<uint32_t>::iter
     }
 }
 
+/**
+ * @param state
+ * @param row_index
+ * @return the row in the state at row_index
+ *
+ * Since the state is stored rotated from how AES operates we need to go through all the columns in the state and grab one byte of the row from each.
+ */
+uint32_t aes_extract_row(const std::vector<uint32_t>& state, uint8_t row_index) {
+    uint32_t row = 0;
+    for (uint8_t col = 0; col < 4; col++) {
+        row |= ((state[col] >> (24 - (row_index * 8))) & 0xff) << (24 - (8 * col));
+    }
+    return row;
+}
+
+/**
+ * @param state
+ * @param row
+ * @param row_index
+ *
+ * Since the state is stored rotated from how AES operates we need to go through all the columns in the state and put one byte of the row into each.
+ */
+void aes_emplace_row(std::vector<uint32_t>& state, uint32_t row, uint8_t row_index) {
+    for (uint8_t col = 0; col < 4; col++) {
+        state[col] &= ~(0xff << (24 - (row_index * 8)));
+        state[col] |= (((row >> (24 - (col * 8))) & 0xff) << (24 - (row_index * 8)));
+    }
+}
+
 void aes_print_state(const std::vector<uint32_t>& state) {
-    for (uint32_t u32 : state) {
-        for (int i = 0; i < 4; i++) {
-            std::cout << std::hex << ((u32 >> (24 - (i * 8))) & 0xff) << ' ';
+    for (uint8_t row_index = 0; row_index < 4; row_index++) {
+        uint32_t row = aes_extract_row(state, row_index);
+        for (int column_index = 0; column_index < 4; column_index++) {
+            std::cout << std::hex << ((row >> (24 - (column_index * 8))) & 0xff) << ' ';
         }
         std::cout << '\n';
     }
@@ -365,26 +376,30 @@ void aes_print_state(const std::vector<uint32_t>& state) {
 void aes_shift_rows(std::vector<uint32_t>& state) {
     std::vector<uint32_t> tmp(4);
 
-    for (uint8_t col = 0; col < 4; col++) {
-        tmp[col] = state[col] << (col * 8);
-        tmp[col] |= state[col] >> (32 - (col * 8));
+    for (uint8_t row_index = 0; row_index < 4; row_index++) {
+        uint32_t row = aes_extract_row(state, row_index);
+
+        tmp[row_index] = row << (row_index * 8);
+        tmp[row_index] |= row >> (32 - (row_index * 8));
     }
 
-    for (uint8_t col = 0; col < 4; col++) {
-        state[col] = tmp[col];
+    for (uint8_t row_index = 0; row_index < 4; row_index++) {
+        aes_emplace_row(state, tmp[row_index], row_index);
     }
 }
 
 void aes_reverse_shift_rows(std::vector<uint32_t>& state) {
     std::vector<uint32_t> tmp(4);
 
-    for (uint8_t col = 0; col < 4; col++) {
-        tmp[col] = state[col] >> (col * 8);
-        tmp[col] |= state[col] << (32 - (col * 8));
+    for (uint8_t row_index = 0; row_index < 4; row_index++) {
+        uint32_t row = aes_extract_row(state, row_index);
+
+        tmp[row_index] = row >> (row_index * 8);
+        tmp[row_index] |= row << (32 - (row_index * 8));
     }
 
-    for (uint8_t col = 0; col < 4; col++) {
-        state[col] = tmp[col];
+    for (uint8_t row_index = 0; row_index < 4; row_index++) {
+        aes_emplace_row(state, tmp[row_index], row_index);
     }
 }
 
@@ -435,8 +450,13 @@ uint8_t aes_mix_column_multiply(uint8_t a, uint8_t b) {
             exit(4);
     }
 }
-
-// This is one implementation of the mix column function that uses matrix multiplication. I prefer the polynomial multiplication for its understandability but this also a correct implementation.
+/**
+ *
+ * @param value - a column from the state
+ * @return the column after applying the mix to it
+ *
+ *  This is one implementation of the mix column function that uses matrix multiplication. I prefer the polynomial multiplication for its understandability but this also a correct implementation.
+ */
 uint32_t aes_mix_column_matrix(uint32_t value) {
     uint16_t b[] = {(uint8_t)((value >> 24) & 0xff), (uint8_t)((value >> 16) & 0xff),
                     (uint8_t)((value >> 8) & 0xff), (uint8_t)(value & 0xff)};
@@ -449,7 +469,12 @@ uint32_t aes_mix_column_matrix(uint32_t value) {
     return (d[0] << 24) | (d[1] << 16) | (d[2] << 8) | d[3];
 }
 
-// This is my preferred implementation of the mix column function that uses polynomial multiplication. I prefer it because it uses the math that the matrix multiplication is derived from. This implementation doesn't use magical constants, and so I have an easier time understanding it.
+/**
+ * @param value - a column from the state
+ * @return the column after applying the mix to it
+ *
+ * This is my preferred implementation of the mix column function that uses polynomial multiplication. I prefer it because it uses the math that the matrix multiplication is derived from. This implementation doesn't use magical constants, and so I have an easier time understanding it.
+ */
 uint32_t aes_mix_column_polynomial(uint32_t value) {
     uint8_t a[] = {2, 1, 1, 3};
     uint16_t b[] = {(uint8_t)((value >> 24) & 0xff), (uint8_t)((value >> 16) & 0xff),
@@ -513,31 +538,53 @@ uint32_t aes_inverse_mix_column(uint32_t value) {
     return (b[3]) | (b[2] << 8) | (b[1] << 16) | (b[0] << 24);
 }
 
+/**
+ * @param state
+ * @param column_index
+ * @return The column of the state at the given index.
+ *
+ * This takes the column by simply indexing the array because the state is actually rotated 90 degrees from the way it's stored. This is quirk of AES.
+ */
 uint32_t aes_extract_column(const std::vector<uint32_t>& state, uint8_t column_index) {
-    uint32_t column = 0;
-    for (uint8_t row = 0; row < 4; row++) {
-        column |= ((state[row] >> (24 - (column_index * 8))) & 0xff) << (24 - (8 * row));
-    }
-    return column;
+    return state[column_index];
 }
 
+/**
+ * @param state
+ * @param column
+ * @param column_index
+ *
+ * This places the column into the state based on the column index. It indexes the array directly to place the column because the state is actually rotated 90 degrees from the way it's stored. This is quirk of AES.
+ */
 void aes_emplace_column(std::vector<uint32_t>& state, uint32_t column, uint8_t column_index) {
-    for (uint8_t row = 0; row < 4; row++) {
-        state[row] &= ~(0xff << (24 - (column_index * 8)));
-        state[row] |= (((column >> (24 - (row * 8))) & 0xff) << (24 - (column_index * 8)));
-    }
+    state[column_index] = column;
 }
+
+//uint32_t aes_extract_column(const std::vector<uint32_t>& state, uint8_t column_index) {
+//    uint32_t column = 0;
+//    for (uint8_t row = 0; row < 4; row++) {
+//        column |= ((state[row] >> (24 - (column_index * 8))) & 0xff) << (24 - (8 * row));
+//    }
+//    return column;
+//}
+//
+//void aes_emplace_column(std::vector<uint32_t>& state, uint32_t column, uint8_t column_index) {
+//    for (uint8_t row = 0; row < 4; row++) {
+//        state[row] &= ~(0xff << (24 - (column_index * 8)));
+//        state[row] |= (((column >> (24 - (row * 8))) & 0xff) << (24 - (column_index * 8)));
+//    }
+//}
 
 
 void aes_mix_columns(std::vector<uint32_t>& state) {
 
-    for (uint8_t i = 0; i < 4; i++) {
+    for (uint8_t column_index = 0; column_index < 4; column_index++) {
 
-        uint32_t column = aes_extract_column(state, i);
+        uint32_t column = aes_extract_column(state, column_index);
 
         column = aes_mix_column_polynomial(column);
 
-        aes_emplace_column(state, column, i);
+        aes_emplace_column(state, column, column_index);
     }
 }
 
@@ -629,8 +676,6 @@ std::vector<uint32_t> aes_encrypt(std::string message, const std::string& key) {
 
     std::cout << "Encrypting \"" << message << "\" with key: " << key << '\n';
 
-    /// TODO: Make it so that all these values are rotated by default
-
     /// Verify key length
     if (key.size() != 16) {
         std::cerr << "AES KEY ERROR: Size of " << key.size() << " is invalid supported sizes are: 16";
@@ -658,12 +703,8 @@ std::vector<uint32_t> aes_encrypt(std::string message, const std::string& key) {
     /// Create round keys
     std::vector<uint32_t> round_keys = aes_get_round_keys(key_len, key_uint, rounds + 1);
 
-    /// Rotate the first key
-    aes_rotate_state(key_uint.begin());
-
     /// Rotate the state
     std::vector<uint32_t> state = convert_be(message);
-    aes_rotate_state(state.begin());
     std::cout << "Initial State:\n";
     aes_print_state(state);
 
@@ -702,12 +743,18 @@ std::vector<uint32_t> aes_encrypt(std::string message, const std::string& key) {
     for (auto& uint : state) {
         uint = aes_sub_word32(uint);
     }
+    std::cout << " Last Round S-Box:\n";
+    aes_print_state(state);
 
     /// Shift Rows
     aes_shift_rows(state);
+    std::cout << " Last Round Shift Rows:\n";
+    aes_print_state(state);
 
     // Add Round Key
     aes_add_round_key(state, round_keys.begin() + (10 * 4));
+    std::cout << " Last Round key:\n";
+    aes_print_state(state);
 
     return state;
 }
@@ -718,8 +765,6 @@ std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::
     const uint8_t key_len = 4;
 
     std::cout << "Decrypting with key: " << key << '\n';
-
-    /// TODO: Make it so that all these values are rotated by default
 
     /// Verify key length
     if (key.size() != 16) {
@@ -741,15 +786,12 @@ std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::
     /// Create round keys
     std::vector<uint32_t> round_keys = aes_get_round_keys(key_len, key_uint, rounds + 1);
 
-    /// Rotate the first key
-    aes_rotate_state(key_uint.begin());
-
     std::vector<uint32_t> state = data;
 
     std::cout << "Initial State:\n";
     aes_print_state(state);
 
-    // Add Round Key
+    /// Add Round Key
     aes_add_round_key(state, round_keys.begin() + (10 * 4));
     std::cout << "First Round Key:\n";
     aes_print_state(state);
@@ -777,7 +819,7 @@ std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::
         aes_inverse_mix_columns(state);
         std::cout << i << " Round mix:\n";
         aes_print_state(state);
-        
+
         /// Shift Rows
         aes_reverse_shift_rows(state);
         std::cout << i << " Round shift:\n";
@@ -800,9 +842,9 @@ std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::
 }
 
 int main() {
-     std::string msg = "Two One Nine Two";
+    std::string msg = "Two One Nine Two";
 
-     std::string key_str = "Thats my Kung Fu";
+    std::string key_str = "Thats my Kung Fu";
 
     std::vector<uint32_t> state = aes_encrypt(msg, key_str);
 
