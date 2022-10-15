@@ -1,7 +1,6 @@
 #include <iostream>
 #include <climits>
 #include <vector>
-#include <cmath>
 #include <bitset>
 
 /// Source: https://en.wikipedia.org/wiki/Circular_shift#Implementing_circular_shifts
@@ -33,18 +32,18 @@ void aes_get_round_constants(uint8_t rounds, uint32_t* output) {
 
     uint8_t rc[rounds + 1];
 
-    for (int i = 1; i <= rounds; i++) {
-        if (i == 1) {
-            rc[i] = 1;
-        } else if (rc[i - 1] < 0x80) {
-            rc[i] = 2 * rc[i - 1];
+    for (int round = 1; round <= rounds; round++) {
+        if (round == 1) {
+            rc[round] = 1;
+        } else if (rc[round - 1] < 0x80) {
+            rc[round] = 2 * rc[round - 1];
         } else {
-            rc[i] = (2 * rc[i - 1]) ^ 0x11b;
+            rc[round] = (2 * rc[round - 1]) ^ 0x11b;
         }
     }
 
-    for (int i = 1; i <= rounds; i++) {
-        output[i] = (rc[i] << 24);
+    for (int round = 1; round <= rounds; round++) {
+        output[round] = (rc[round] << 24);
     }
 }
 
@@ -102,8 +101,8 @@ uint8_t gf2_8_reduce_product(uint16_t value, uint16_t polynomial) {
 
         uint8_t output_bits[16];
 
-        for (int i = 0; i < 16; i++) {
-            output_bits[i] = (value >> i) & (0b1);
+        for (int bit = 0; bit < 16; bit++) {
+            output_bits[bit] = (value >> bit) & (0b1);
         }
 
         polynomial_copy = polynomial_copy << degree_difference;
@@ -123,9 +122,9 @@ uint8_t gf2_8_multiplication(uint8_t a, uint8_t b, uint16_t polynomial) {
     uint16_t output = 0;
     uint16_t b_copy = b;
 
-    for (int i = 0; i < 8; i++) {
-        if ((a >> i) & (0b1)) {
-            output ^= b_copy << i;
+    for (int bit = 0; bit < 8; bit++) {
+        if ((a >> bit) & (0b1)) {
+            output ^= b_copy << bit;
         }
     }
 
@@ -192,8 +191,8 @@ uint8_t gf_2_8_get_value_inverse(const uint8_t value, uint16_t polynomial) {
     quotients.push_back((first_result >> 8) & 0xff);
     remainders.push_back(first_result & 0xff);
 
-    for (int i = 2; remainders.back(); i++) {
-        uint16_t result = gf2_8_division(remainders[i-1], remainders[i]);
+    for (int n = 2; remainders.back(); n++) {
+        uint16_t result = gf2_8_division(remainders[n - 1], remainders[n]);
 
         quotients.push_back((result >> 8) & 0xff);
         remainders.push_back(result & 0xff);
@@ -203,8 +202,8 @@ uint8_t gf_2_8_get_value_inverse(const uint8_t value, uint16_t polynomial) {
 
     aux[0] = 0; aux[1] = 1;
 
-    for (int i = 2; i < quotients.size() + 1; i++) {
-        aux[i] = aux[i-2] ^ gf2_8_multiplication(quotients[i-1], aux[i-1], polynomial);
+    for (int n = 2; n < quotients.size() + 1; n++) {
+        aux[n] = aux[n - 2] ^ gf2_8_multiplication(quotients[n - 1], aux[n - 1], polynomial);
     }
 
     return aux[quotients.size() - 1];
@@ -219,18 +218,18 @@ uint8_t aes_generate_sbox_value(uint8_t value) {
 
     uint8_t current_bit;
 
-    for (int i = 0; i < 8; i++) {
-        current_bit = ((sbox_matrix[i][0] * (inverse & 0b00000001)) ^
-                (sbox_matrix[i][1] * ((inverse & 0b00000010) >> 1)) ^
-                (sbox_matrix[i][2] * ((inverse & 0b00000100) >> 2)) ^
-                (sbox_matrix[i][3] * ((inverse & 0b00001000) >> 3)) ^
-                (sbox_matrix[i][4] * ((inverse & 0b00010000) >> 4)) ^
-                (sbox_matrix[i][5] * ((inverse & 0b00100000) >> 5)) ^
-                (sbox_matrix[i][6] * ((inverse & 0b01000000) >> 6)) ^
-                (sbox_matrix[i][7] * ((inverse & 0b10000000) >> 7))) ^
-                sbox_vector[i];
+    for (int bit = 0; bit < 8; bit++) {
+        current_bit = ((sbox_matrix[bit][0] * (inverse & 0b00000001)) ^
+                       (sbox_matrix[bit][1] * ((inverse & 0b00000010) >> 1)) ^
+                       (sbox_matrix[bit][2] * ((inverse & 0b00000100) >> 2)) ^
+                       (sbox_matrix[bit][3] * ((inverse & 0b00001000) >> 3)) ^
+                       (sbox_matrix[bit][4] * ((inverse & 0b00010000) >> 4)) ^
+                       (sbox_matrix[bit][5] * ((inverse & 0b00100000) >> 5)) ^
+                       (sbox_matrix[bit][6] * ((inverse & 0b01000000) >> 6)) ^
+                       (sbox_matrix[bit][7] * ((inverse & 0b10000000) >> 7))) ^
+                      sbox_vector[bit];
 
-        result |= current_bit << i;
+        result |= current_bit << bit;
     }
 
     return result;
@@ -241,8 +240,8 @@ void aes_generate_sbox() {
     delete[] sbox;
     sbox = new uint8_t[256];
 
-    for (int i = 0; i < 256; i++) {
-        sbox[i] = aes_generate_sbox_value(i);
+    for (int value = 0; value < 256; value++) {
+        sbox[value] = aes_generate_sbox_value(value);
     }
 }
 
@@ -250,8 +249,8 @@ void aes_generate_inverse_sbox() {
     delete[] inverse_sbox;
     inverse_sbox = new uint8_t[256];
 
-    for (int i = 0; i < 256; i++) {
-        inverse_sbox[sbox[i]] = i;
+    for (int index = 0; index < 256; index++) {
+        inverse_sbox[sbox[index]] = index;
     }
 }
 
@@ -307,18 +306,18 @@ std::vector<uint32_t> aes_get_round_keys(uint8_t n, std::vector<uint32_t> key, u
     aes_get_round_constants(r, rc);
 
 
-    for (int i = 0; i <= n * r; i++) {
-        if (i < n) {
-            w[i] = key[i];
+    for (int round = 0; round <= n * r; round++) {
+        if (round < n) {
+            w[round] = key[round];
         }
-        else if ((i % n) == 0) {
-            w[i] = (w[i - n] ^ (aes_sub_word32(aes_rot_word(w[i-1])))) ^ rc[i / n];
+        else if ((round % n) == 0) {
+            w[round] = (w[round - n] ^ (aes_sub_word32(aes_rot_word(w[round - 1])))) ^ rc[round / n];
         }
-        else if (n > 6 && (i % n) == 4) {
-            w[i] = w[i - n] ^ aes_sub_word32(w[i-1]);
+        else if (n > 6 && (round % n) == 4) {
+            w[round] = w[round - n] ^ aes_sub_word32(w[round - 1]);
         }
         else {
-            w[i] = w[i - n] ^ w[i - 1];
+            w[round] = w[round - n] ^ w[round - 1];
         }
     }
 
@@ -327,8 +326,8 @@ std::vector<uint32_t> aes_get_round_keys(uint8_t n, std::vector<uint32_t> key, u
 
 
 void aes_add_round_key(std::vector<uint32_t>& state, std::vector<uint32_t>::iterator round_key) {
-    for (uint8_t i = 0; i < 4; i++) {
-        state[i] ^= round_key[i];
+    for (uint8_t byte_index = 0; byte_index < 4; byte_index++) {
+        state[byte_index] ^= round_key[byte_index];
     }
 }
 
@@ -519,14 +518,11 @@ uint32_t aes_inverse_mix_column(uint32_t value) {
     uint8_t b[4];
 
 
-    for (int i = 0; i < 4; i++) {
-        uint8_t bi_0 = aes_mix_column_multiply(m[0], d[0]);
-        uint8_t bi_1 = aes_mix_column_multiply(m[1], d[1]);
-        uint8_t bi_2 = aes_mix_column_multiply(m[2], d[2]);
-        uint8_t bi_3 = aes_mix_column_multiply(m[3], d[3]);
-
-
-        b[i] =  bi_0 ^ bi_1 ^ bi_2 ^ bi_3;
+    for (int column_index = 0; column_index < 4; column_index++) {
+        b[column_index] = aes_mix_column_multiply(m[0], d[0]) ^
+                        aes_mix_column_multiply(m[1], d[1]) ^
+                        aes_mix_column_multiply(m[2], d[2]) ^
+                        aes_mix_column_multiply(m[3], d[3]);
 
         uint8_t tmp = m[3];
         m[3] = m[2];
@@ -590,13 +586,13 @@ void aes_mix_columns(std::vector<uint32_t>& state) {
 
 void aes_inverse_mix_columns(std::vector<uint32_t>& state) {
 
-    for (uint8_t i = 0; i < 4; i++) {
+    for (uint8_t column_index = 0; column_index < 4; column_index++) {
 
-        uint32_t column = aes_extract_column(state, i);
+        uint32_t column = aes_extract_column(state, column_index);
 
         column = aes_inverse_mix_column(column);
 
-        aes_emplace_column(state, column, i);
+        aes_emplace_column(state, column, column_index);
     }
 }
 
@@ -619,7 +615,7 @@ void aes_inverse_mix_columns(std::vector<uint32_t>& state) {
  * expand using to get round keys
  *
  * round keys are
- * rij where i is the round and j is the byte index
+ * rij where i is the round and j is the byte index in hex
  * e.g. 5th byte from 3rd round: r35
  * e.g. 14th byte from the 12th round: rbd
  *
@@ -684,8 +680,8 @@ std::vector<uint32_t> aes_encrypt(std::string message, const std::string& key) {
     /// Split into 16 byte chunks
     if (message.size() > 16) {
         std::vector<uint32_t> out;
-        for (uint16_t i = 0; (i * 16) < message.size(); i++) {
-            std::vector<uint32_t> sub_result = aes_encrypt(message.substr(i * 16, 16), key);
+        for (uint16_t chunk_index = 0; (chunk_index * 16) < message.size(); chunk_index++) {
+            std::vector<uint32_t> sub_result = aes_encrypt(message.substr(chunk_index * 16, 16), key);
             out.insert(out.end(), sub_result.begin(), sub_result.end());
         }
         return out;
@@ -713,28 +709,28 @@ std::vector<uint32_t> aes_encrypt(std::string message, const std::string& key) {
     std::cout << "First Round Key:\n";
     aes_print_state(state);
 
-    for (int i = 1; i < rounds; i++) {
+    for (int round = 1; round < rounds; round++) {
 
         /// Sub-byte the state
         for (auto& uint : state) {
             uint = aes_sub_word32(uint);
         }
-        std::cout << i << " Round s-box:\n";
+        std::cout << round << " Round s-box:\n";
         aes_print_state(state);
 
         /// Shift Rows
         aes_shift_rows(state);
-        std::cout << i << " Round row shift:\n";
+        std::cout << round << " Round row shift:\n";
         aes_print_state(state);
 
         /// Mix Columns
         aes_mix_columns(state);
-        std::cout << i << " Round mix:\n";
+        std::cout << round << " Round mix:\n";
         aes_print_state(state);
 
         // Add Round Key
-        aes_add_round_key(state, round_keys.begin() + (i * 4));
-        std::cout << i << " Round add round key:\n";
+        aes_add_round_key(state, round_keys.begin() + (round * 4));
+        std::cout << round << " Round add round key:\n";
         aes_print_state(state);
     }
 
@@ -775,8 +771,8 @@ std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::
     /// Split into 16 byte chunks
     if (data.size() > 4) {
         std::vector<uint32_t> out;
-        for (uint16_t i = 0; (i * 4) < data.size(); i++) {
-            std::vector<uint32_t> sub_result = aes_decrypt(std::vector<uint32_t>(data.begin() + i * 4, data.begin() + ((i + 1) * 4)), key);
+        for (uint16_t chunk_index = 0; (chunk_index * 4) < data.size(); chunk_index++) {
+            std::vector<uint32_t> sub_result = aes_decrypt(std::vector<uint32_t>(data.begin() + chunk_index * 4, data.begin() + ((chunk_index + 1) * 4)), key);
             out.insert(out.end(), sub_result.begin(), sub_result.end());
         }
         return out;
@@ -809,27 +805,27 @@ std::vector<uint32_t> aes_decrypt(const std::vector<uint32_t>& data, const std::
     aes_print_state(state);
 
 
-    for (int i = rounds - 1; i > 0; i--) {
+    for (int round = rounds - 1; round > 0; round--) {
         // Add Round Key
-        aes_add_round_key(state, round_keys.begin() + (i * 4));
-        std::cout << i << " Round key:\n";
+        aes_add_round_key(state, round_keys.begin() + (round * 4));
+        std::cout << round << " Round key:\n";
         aes_print_state(state);
 
         /// Mix Columns
         aes_inverse_mix_columns(state);
-        std::cout << i << " Round mix:\n";
+        std::cout << round << " Round mix:\n";
         aes_print_state(state);
 
         /// Shift Rows
         aes_reverse_shift_rows(state);
-        std::cout << i << " Round shift:\n";
+        std::cout << round << " Round shift:\n";
         aes_print_state(state);
 
         /// Sub-byte the state
         for (auto& uint : state) {
             uint = aes_inverse_sub_word32(uint);
         }
-        std::cout << i << " Round s-box:\n";
+        std::cout << round << " Round s-box:\n";
         aes_print_state(state);
     }
 
