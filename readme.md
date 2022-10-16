@@ -9,7 +9,9 @@ This project is vulnerable to a number of attacks and makes no attempt to guard 
 
 # How it works
 ## Overview
-There are a different number of rounds based on the key size (128-bit, 196-bit, or 256-bit). This project uses 128-bit keys because they require the least amount of work. The steps are the same for each key size you just do more of the same step for the larger keys. The AES algorithm is broken into rounds. They also include a few initial steps and a few proceeding steps. The bytes of the message are referred to as the "state". AES operates within a [GF( $2^8$ ) finite field](#finite-field-math). While understanding finite field arithmatic is not strictly necessary for understanding AES implemations it is necessary for understanding the math behind the algorithm.
+There are a different number of rounds based on the key size (128-bit, 196-bit, or 256-bit). This project uses 128-bit keys because they require the least amount of work. The steps are the same for each key size you just do more of the same step for the larger keys. The AES algorithm is broken into rounds. They also include a few initial steps and a few proceeding steps. The bytes of the message are referred to as the "state". AES operates within a [GF(2^8) finite field](#finite-field-math). While understanding finite field arithmatic is not strictly necessary for understanding AES implemations it is necessary for understanding the math behind the algorithm. \
+Note: The state is stored as a vector of 32-bit integers. However, due to the way AES operates it is stored rotated from the way operations are done. This means that each 32-bit value in the vector is a column rather than a row.
+
 
 ## Notation
 $\oplus$ denotes an xor operation. \
@@ -19,38 +21,38 @@ $\oplus$ denotes an xor operation. \
 ### Encryption
 There are a different number of round for each key size (9, 11, or 13 for 128, 192, and 256-bit respectively). The rounds are performed after the initial steps and after the rounds are done the final steps are executed before returning the state as the ciphertext.
 
-### Initial Steps
+#### Initial Steps
 1. [Key Expansion](#key-expansion) - AES includes a key schedule so that there is one key for every round.
 2. [Add Round Key](#add-round-key) - The initial key (Not part of the key expansion) is added to the state.   
 
-### Round Steps
+#### Round Steps
 1. [Sub Bytes](#sub-bytes) - The bytes of the state are substituted using constant array. 
 2. [Shift Rows](#shift-rows) - The rows of the state are shifted by `r` places where `r` is the row index.
 3. [Mix Columns](#mix-columns) - The columns are mixed using either polynomial multiplication or matrix multiplication.
 4. [Add Round Key](#add-round-key) - The current round key (from the key expansion) is added to the state.
 
 
-### Final Steps
+#### Final Steps
 1. [Sub Bytes](#sub-bytes) - The bytes of the state are substituted using constant array.
 2. [Shift Rows](#shift-rows) - The rows of the state are shifted by `r` places where `r` is the row index.
 3. [Add Round Key](#add-round-key) - The current round key (from the key expansion) is added to the state.
 
 ### Decryption
-Decryption has the same number of round as encryption. The difference is that the initial steps, rounds, and final steps are exactly reversed from the encryption. To make things simpler, the round numbers will also be reversed (e.g. the first round would be round 9 then round 8 and so on).
+Decryption has the same number of round as encryption. The difference is that the initial steps, rounds, and final steps are exactly reversed from the encryption. To make things simpler, the round numbers will also be reversed (e.g. in AES-128 the first round would be round 9 then round 8 and so on).
 
-### Initial Steps 
+#### Initial Steps
 1. [Key Expansion](#key-expansion) - AES includes a key schedule so that there is one key for every round.
 2. [Add Round Key](#add-round-key) - The current round key (from the key expansion) is added to the state.
 3. [Shift Rows](#shift-rows) - The rows of the state are shifted by `r` places where `r` is the row index.
 4. [Sub Bytes](#sub-bytes) - The bytes of the state are substituted using constant array.
 
-### Round Steps
+#### Round Steps
 1. [Add Round Key](#add-round-key) - The current round key (from the key expansion) is added to the state.
 2. [Mix Columns](#mix-columns) - The columns are mixed using either polynomial multiplication or matrix multiplication.
 3. [Shift Rows](#shift-rows) - The rows of the state are shifted by `r` places where `r` is the row index.
 4. [Sub Bytes](#sub-bytes) - The bytes of the state are substituted using constant array. 
 
-### Final Steps
+#### Final Steps
 1. [Add Round Key](#add-round-key) - The initial key (Not part of the key expansion) is added to the state.
 
 
@@ -100,10 +102,26 @@ The inverse S-Box array can be found by simply swapping the values and indexes o
 
 
 ### Shift Rows
-
-
+The shift rows step is performed by taking the state and moving each row based on its position. If we call the first row the 0th row it's easier to understand: \
+The 0th row is not shifted. The 1st row is shift by one and so on. This mean that the operation as a whole looks like this: \
+```
+---------------------			---------------------
+| m0 | m4 | m8 | mc |		\	| m0 | m4 | m8 | mc |
+| m1 | m5 | m9 | md |  ------\ 	| md | m1 | m5 | m9 |
+| m2 | m6 | ma | me |  ------/	| ma | me | m2 | m6 |
+| m3 | m7 | mb | mf |		/	| m7 | mb | mf | m3 |
+---------------------			---------------------
+```
 ### Mix Columns
 
+```
+---------------------			---------------------
+| m0 | m4 | m8 | mc |		\	| m0 | m4 | m8 | mc |
+| m1 | m5 | m9 | md |  ------\ 	| m1 | m5 | m9 | md |
+| m2 | m6 | ma | me |  ------/	| m2 | m6 | ma | me |
+| m3 | m7 | mb | mf |		/	| m3 | m7 | mb | mf |
+---------------------			---------------------
+```
 
 
 ## Finite Field Math
@@ -112,7 +130,7 @@ Notes: This project uses Galois Field and Finite Field interchangably and unless
 ### Basics
 Finite Fields are a field containing a finite number of elements from 0 to $p^n$ where $p$ is a prime and $n$ is a positive integer. For all math in this project $p$ is 2 and $n$ is 8 giving us the field GF( $2^8$ ).
 Any number in GF( $2^8$ ) can be represented as a polynomial with: \
-$b_{7}p^7 + b_{6}p^6 + b_{5}p^5 + b_{4}p^4 + b_{3}p^3 + b_{2}p^2 + b_{1}p^1 + b_{0}p^1$ \
+$b_{7}p^7 + b_{6}p^6 + b_{5}p^5 + b_{4}p^4 + b_{3}p^3 + b_{2}p^2 + b_{1}p^1 + b_{0}p^0$ \
 Where $b$ is any 8-bit value and $b_{i}$ is the bit at $i$. And $p$ is 2 \
 In an similar way the generating polynomial can be written as: \
 $2^8 + 2^4 + 2^3 + 2 + 1$ or $[ 1 0 0 0 1 1 0 1 1 ]$ or $0x11b$ \
