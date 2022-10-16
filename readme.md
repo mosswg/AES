@@ -58,7 +58,7 @@ Decryption has the same number of round as encryption. The difference is that th
 
 ## Steps In Depth
 ### Notation
-The state is represented below with an operation that does nothing:
+The state is represented below where ``si`` denotes the byte of the state and index ``i`` (e.g. ``s0`` is the 1st byte, ``s5`` is the 6th byte, and ``se`` is the 15th byte):
 ```
 ---------------------           ---------------------
 | s0 | s4 | s8 | sc |       \   | s0 | s4 | s8 | sc |
@@ -101,10 +101,20 @@ Since addition is the same as substraction in GF( $2^8$ ) the encryption and dec
 ### Sub Bytes
 S-Box Arrays: [Wikipedia](https://en.wikipedia.org/wiki/Rijndael_S-box)
 #### Encryption
-The Sub Bytes step uses an array of 256-bytes indexed with each byte in the state and the result in placed back into the state in the same position. The pre-computed S-Box values can be found at the link above.
+The Sub Bytes step uses an array of 256-bytes indexed with each byte in the state and the result in placed back into the state in the same position. The pre-computed S-Box values can be found at the link above. \
+The State modification can be seen below where ``S`` is the S-Box array:
+```
+---------------------           ---------------------------------
+| s0 | s4 | s8 | sc |       \   | S[s0] | S[s4] | S[s8] | S[sc] |
+| s1 | s5 | s9 | sd |  ------\  | S[s1] | S[s5] | S[s9] | S[sd] |
+| s2 | s6 | sa | se |  ------/  | S[s2] | S[s6] | S[sa] | S[se] |
+| s3 | s7 | sb | sf |       /   | S[s3] | S[s7] | S[sb] | S[sf] |
+---------------------           ---------------------------------
+```
+
 #### Decryption
 The Inverse of Sub Bytes is the same process with an inverse array. This can be found in the link above.
-#### Deriving the S-Box Array
+#### Finding the S-Box Array Values
 The values of the S-Box are found by the following steps: \
 1. [Byte Inverse](#finite-field-inverse) - The inverse of the byte in GF( $2^8$ ) is found. We'll call this $b$ where $b_{i}$ is a single bit and $b_{0}$ is the least significant bit for the other steps.
 2. Affine Transformation:
