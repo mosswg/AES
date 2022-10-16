@@ -103,13 +103,13 @@ The inverse S-Box array can be found by simply swapping the values and indexes o
 
 ### Shift Rows
 The shift rows step is performed by taking the state and moving each row based on its position. If we call the first row the 0th row it's easier to understand: \
-The 0th row is not shifted. The 1st row is shift by one and so on. This mean that the operation as a whole looks like this: \
+The 0th row is not shifted. The 1st row is shift by one and so on. This mean that the operation as a whole looks like this:
 ```
 ---------------------			---------------------
-| m0 | m4 | m8 | mc |		\	| m0 | m4 | m8 | mc |
-| m1 | m5 | m9 | md |  ------\ 	| md | m1 | m5 | m9 |
-| m2 | m6 | ma | me |  ------/	| ma | me | m2 | m6 |
-| m3 | m7 | mb | mf |		/	| m7 | mb | mf | m3 |
+| m0 | m4 | m8 | mc |		 \	| m0 | m4 | m8 | mc |
+| m1 | m5 | m9 | md |	------\	| md | m1 | m5 | m9 |
+| m2 | m6 | ma | me |	------/	| ma | me | m2 | m6 |
+| m3 | m7 | mb | mf |		 /	| m7 | mb | mf | m3 |
 ---------------------			---------------------
 ```
 ### Mix Columns
