@@ -93,7 +93,9 @@ These keys are placed into an array of 32-bit value where each set of four value
 
 ### Add Round Key
 #### Encryption
-Using the round key of the current round gotten from the key expansion, each byte of the round key is xored with the state. This is done with the following where ``wi`` is the ``i``th byte of the current round key and ``ai`` is ``si xor wi``:
+Using the round key of the current round gotten from the key expansion, each byte of the round key is xored with the state. \
+\
+This is done with the following where ``wi`` is the ``i``th byte of the current round key and ``ai`` is ``si xor wi``:
 ```
 ---------------------           ---------------------
 | s0 | s4 | s8 | sc |       \   | a0 | a4 | a8 | ac |
@@ -155,6 +157,51 @@ This mean that the operation as a whole looks like this:
 ---------------------           ---------------------
 ```
 ### Mix Columns
+The mix columns step can be done in two ways. Polynomial multiplication and matrix multiplication. This project mainly uses the polynomial multiplication method, however the inverse function uses matrix multiplication.
+
+#### Polynomial method
+This method starts by defining a constant polynomial $a(x) = 3x^3 + x^2 + x + 2$ and a polynomial derived from the byte of the column $b(x) = b_{3}x^3 + b_{2}x^2 + b_{1}x + b_{0}$. \
+We then find $c(x)$ which is a seven-term polyonmial defined as $c(x) = a(x) \cdot b(x)$. We can also find $c(x)$ with: \
+$c_{0} = a_{0} \cdot b_{0}$ \
+$c_{1} = a_{1} \cdot b_{0} \oplus a_{0} \cdot b_{1}$ \
+$c_{2} = a_{2} \cdot b_{0} \oplus a_{1} \cdot b_{1} \oplus a_{0} \cdot b_{2}$ \
+$c_{3} = a_{3} \cdot b_{0} \oplus a_{2} \cdot b_{1} \oplus a_{1} \cdot b_{2} \oplus a_{0} \cdot b_{3}$ \
+$c_{4} = a_{3} \cdot b_{1} \oplus a_{2} \cdot b_{2} \oplus a_{1} \cdot b_{3}$ \
+$c_{5} = a_{3} \cdot b_{2} \oplus a_{2} \cdot b_{3}$ \
+$c_{6} = a_{3} \cdot b_{3}$ \
+Where $c(x) = c_{6}x^6 + c_{5}x^5 + c_{4}x^4 + c_{3}x^3 + c_{2}x^2 + c_{1}x + c_{0}$. \
+We then find the values $d_{0}$, $d_{1}$. $d_{2}$, and $d_{3}$ from: \
+$d_{0} = c_{0} \oplus c_{4}$ \
+$d_{1} = c_{1} \oplus c_{5}$ \
+$d_{2} = c_{2} \oplus c_{6}$ \
+$d_{3} = c_{3}$ \
+the $d$ values are then placed into the matrix where $b_{0}$ becomes $d_{0}$ and so on.
+
+#### Matrix method
+This method does a matrix multiplication of the matrix: \
+```
+-----------------
+| 2 | 3 | 1 | 1 |
+| 1 | 2 | 3 | 1 |
+| 1 | 1 | 2 | 3 |
+| 3 | 1 | 1 | 2 |
+-----------------
+```
+With the vector [ $b_{0}$ $b_{1}$ $b_{2}$ $b_{3}$ ]. The values of $d$ are then found with: \
+$d_{0} = 2 \cdot b_{0} \oplus 3 \cdot b_{1} \oplus 1 \cdot b_{2} \oplus 1 \cdot b_{3}$ \
+$d_{1} = 1 \cdot b_{0} \oplus 2 \cdot b_{1} \oplus 3 \cdot b_{2} \oplus 1 \cdot b_{3}$ \
+$d_{2} = 1 \cdot b_{0} \oplus 1 \cdot b_{1} \oplus 2 \cdot b_{2} \oplus 3 \cdot b_{3}$ \
+$d_{3} = 3 \cdot b_{0} \oplus 1 \cdot b_{1} \oplus 1 \cdot b_{2} \oplus 2 \cdot b_{3}$ \
+
+The state view of either of these method can be seen with the following where ``dij`` is $d_{j}$ of column ``i``:
+```
+---------------------           -------------------------
+| s0 | s4 | s8 | sc |       \   | d00 | d10 | d20 | d30 |
+| s1 | s5 | s9 | sd |  ------\  | d01 | d11 | d21 | d31 |
+| s2 | s6 | sa | se |  ------/  | d02 | d12 | d22 | d32 |
+| s3 | s7 | sb | sf |       /   | d03 | d13 | d23 | d33 |
+---------------------           -------------------------
+```
 
 
 ## Finite Field Math
