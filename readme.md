@@ -157,8 +157,9 @@ This mean that the operation as a whole looks like this:
 ---------------------           ---------------------
 ```
 ### Mix Columns
-Note: Most resources I found explain the multiplication for Mix Columns as using 0x1B as a polynomial without explaining why. 0x1B is just the regular irriducable polynomial with the last 8-bits chopped off.
-The mix columns step can be done in two ways. Polynomial multiplication and matrix multiplication. This project mainly uses the polynomial multiplication method, however the inverse function uses matrix multiplication.
+Note: Most resources I found explain the multiplication for Mix Columns as using 0x1B as a polynomial without explaining why. 0x1B is just the regular irriducable polynomial with the last 8-bits chopped off. \
+\
+The mix columns step can be done in two ways. Polynomial multiplication and matrix multiplication. This project mainly uses the polynomial multiplication method, however the inverse function uses matrix multiplication. \
 For mix columns we need to define a constant polynomial $a(x) = 3x^3 + x^2 + x + 2$ and a polynomial derived from the byte of the column $b(x) = b_{3}x^3 + b_{2}x^2 + b_{1}x + b_{0}$.
 
 #### Polynomial method
@@ -242,10 +243,10 @@ or
 ---------------------
 ```
 With the vector [ $b_{0}$ $b_{1}$ $b_{2}$ $b_{3}$ ]. The values of $d$ are then found with: \
-$d_{0} = a'_{0} \cdot b_{0} \oplus a'_{3} \cdot b_{1} \oplus a'_{2} \cdot b_{2} \oplus a'_{1} \cdot b_{3}$ \
-$d_{1} = a'_{1} \cdot b_{0} \oplus a'_{0} \cdot b_{1} \oplus a'_{3} \cdot b_{2} \oplus a'_{2} \cdot b_{3}$ \
-$d_{2} = a'_{2} \cdot b_{0} \oplus a'_{1} \cdot b_{1} \oplus a'_{0} \cdot b_{2} \oplus a'_{3} \cdot b_{3}$ \
-$d_{3} = a'_{3} \cdot b_{0} \oplus a'_{2} \cdot b_{1} \oplus a'_{1} \cdot b_{2} \oplus a'_{0} \cdot b_{3}$ \
+$d_{0} = a\prime_{0} \cdot b_{0} \oplus a\prime_{3} \cdot b_{1} \oplus a\prime_{2} \cdot b_{2} \oplus a\prime_{1} \cdot b_{3}$ \
+$d_{1} = a\prime_{1} \cdot b_{0} \oplus a\prime_{0} \cdot b_{1} \oplus a\prime_{3} \cdot b_{2} \oplus a\prime_{2} \cdot b_{3}$ \
+$d_{2} = a\prime_{2} \cdot b_{0} \oplus a\prime_{1} \cdot b_{1} \oplus a\prime_{0} \cdot b_{2} \oplus a\prime_{3} \cdot b_{3}$ \
+$d_{3} = a\prime_{3} \cdot b_{0} \oplus a\prime_{2} \cdot b_{1} \oplus a\prime_{1} \cdot b_{2} \oplus a\prime_{0} \cdot b_{3}$ \
 or \
 $d_{0} = 14 \cdot b_{0} \oplus 11 \cdot b_{1} \oplus 13 \cdot b_{2} \oplus 9 \cdot b_{3}$ \
 $d_{1} = 9 \cdot b_{0} \oplus 14 \cdot b_{1} \oplus 11 \cdot b_{2} \oplus 13 \cdot b_{3}$ \
