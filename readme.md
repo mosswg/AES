@@ -125,7 +125,7 @@ The state modification can be seen below where ``S`` is the S-Box array:
 #### Decryption
 The Inverse of Sub Bytes is the same process with an inverse array. This can be found in the link above.
 #### Finding the S-Box Array Values
-The values of the S-Box are found by the following steps: \
+The values of the S-Box are found by the following steps:
 1. [Byte Inverse](#finite-field-inverse) - The inverse of the byte in GF( $2^8$ ) is found. We'll call this $b$ where $b_{i}$ is a single bit and $b_{0}$ is the least significant bit for the other steps.
 2. Affine Transformation:
 	1. Matrix Multiplication - The bits of the inverse are used in a matrix multiplication in GF( $2^8$ ).
@@ -182,12 +182,12 @@ the $d$ values are then placed into the matrix where $b_{0}$ becomes $d_{0}$ and
 #### Matrix method
 This method does a matrix multiplication of the matrix:
 ```
------------------
+---------------------
 | a0 | a3 | a2 | a1 |
 | a1 | a0 | a3 | a2 |
 | a2 | a1 | a0 | a3 |
 | a3 | a2 | a1 | a0 |
------------------
+---------------------
 ```
 or
 ```
@@ -222,7 +222,7 @@ The state modification of either of these method can be seen with the following 
 ```
 
 #### Decryption
-For decryption mix columns uses the inverse of $a(x)$ which is $a\prime(x) = 11x^3 + 13x^2 + 9x + 14$. This project only implements the inverse of mix columns using matrix multiplication. \
+For decryption mix columns uses the inverse of $a(x)$ which is $a\prime(x) = 11x^3 + 13x^2 + 9x + 14$. This project only implements the inverse of mix columns using matrix multiplication.
 
 The inverse matrix method does a matrix multiplication of the matrix using $a\prime(x)$:
 ```
@@ -283,7 +283,7 @@ Division between two values in GF( $2^8$ ) is done the same way as long division
 Example: \
 $10\ /\ 7$ = $[ 1 0 1 0 ]\ /\ [ 1 1 1 ]$:
 1. $[ 1 0 1 0] \oplus [ 1 1 1 ] \cdot 2^1$ = $[ 1 0 1 0 ] \oplus [ 1 1 1 0 ]$ = $[ 0 1 0 0 ]$
-2. $[ 0 1 0 0] \oplus [ 1 1 1 ] \cdot 2^0$ = $[ 0 1 1 ]$ \
+2. $[ 0 1 0 0] \oplus [ 1 1 1 ] \cdot 2^0$ = $[ 0 1 1 ]$
 
 Thus the result is $2^1 + 2^0$ or 3 and the remainder is $[ 0 1 1 ]$ or 3.
 
