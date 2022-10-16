@@ -276,12 +276,13 @@ Since every addition operation is modulo 2 and there is no concept of negative n
 ### Finite Field Multiplication
 Multiplication between two values on the finite field is significantly more complex. Multiplication can be acheive by taking the placement of every bit of one value and shifting the second value by that placement and xoring each of these together. The result of the muliplication is moduloed by the generating polynomial and the result of this modulo is the result of the multiplication. Example: \
 $0x55 \cdot 0x5$ = $[ 0 1 0 1 0 1 0 1 ] \cdot [ 0 0 0 0 0 1 0 1 ]$ = \
-$[ 0 1 0 1 0 1 0 1 ] \cdot [ 0 0 0 0 0 1 0 0 ] \oplus [ 0 1 0 1 0 1 0 1 ] \cdot [ 0 0 0 0 0 0 0 1 ]$ = \ 
+$[ 0 1 0 1 0 1 0 1 ] \cdot [ 0 0 0 0 0 1 0 0 ] \oplus [ 0 1 0 1 0 1 0 1 ] \cdot [ 0 0 0 0 0 0 0 1 ]$ = \
 $[ 0 1 0 1 0 1 0 1 ] \cdot 2^2 \oplus [ 0 1 0 1 0 1 0 1 ] \cdot 2^0$ = \
 $[ 1 0 1 0 1 0 1 0 0 ] \oplus [ 0 0 1 0 1 0 1 0 1 ]$ = $[ 1 0 0 0 0 0 0 0 1 ]$ \
+\
 Since $[ 1 0 0 0 0 0 0 0 1 ]$ has the same degree as the generating polynomial we need to find: \
 $[ 1 0 0 0 0 0 0 0 1 ] \mod [ 1 0 0 0 1 1 0 1 1 ]$ \
-$[ 1 0 0 0 0 0 0 0 1 ] \oplus [ 1 0 0 0 1 1 0 1 1]$ = $[ 0 0 0 0 1 1 0 1 0 ]$
+$[ 1 0 0 0 0 0 0 0 1 ] \oplus [ 1 0 0 0 1 1 0 1 1]$ = $[ 0 0 0 0 1 1 0 1 0 ]$ \
 Our result is then $[ 0 0 0 0 1 1 0 1 0 ]$ or 0x1a or 26.
 
 ### Finite Field Division
