@@ -271,12 +271,18 @@ It is important to not that the generating polynomial is not a valid value withi
 All addition in a finite field must be done modulo $p$. Since $p$ is always 2 in this project that means that all addition is modulo 2. Since addition modulo 2 is the same as the xor operation we can save a lot of computation time by just using xor instead of any addition operation.
 
 ### Finite Field Subtraction
-Since every addition operation is modulo 2 and there is no concept of negative numbers in GF( $2^8$ ) every substraction is the exact same as addition and there for is just an xor operation.
+Since every addition operation is modulo 2 and there is no concept of negative numbers in GF( $2^8$ ) every substraction is the exact same as addition and therefore is just an xor operation.
 
 ### Finite Field Multiplication
 Multiplication between two values on the finite field is significantly more complex. Multiplication can be acheive by taking the placement of every bit of one value and shifting the second value by that placement and xoring each of these together. The result of the muliplication is moduloed by the generating polynomial and the result of this modulo is the result of the multiplication. Example: \
-$5 \cdot 5$ = $[ 1 0 1 ] \cdot [ 1 0 1 ]$ = $[ 1 0 1 ] \cdot [ 1 0 0 ] \oplus [ 1 0 1 ] \cdot [ 0 0 1 ]$ = $[ 1 0 1 ] \cdot 2^2 \oplus [ 1 0 1 ] \cdot 2^0$ = $[ 1 0 1 0 0 ] \oplus [ 0 0 1 0 1 ]$ = $[ 1 0 0 0 1 ]$ = 17 \
-For this example $5 \cdot 5$ is less than the generating polynomial so the modulo is not done, however the result is still different due to using addition modulo 2.
+$0x55 \cdot 0x5$ = $[ 0 1 0 1 0 1 0 1 ] \cdot [ 0 0 0 0 0 1 0 1 ]$ = \
+$[ 0 1 0 1 0 1 0 1 ] \cdot [ 0 0 0 0 0 1 0 0 ] \oplus [ 0 1 0 1 0 1 0 1 ] \cdot [ 0 0 0 0 0 0 0 1 ]$ = \ 
+$[ 0 1 0 1 0 1 0 1 ] \cdot 2^2 \oplus [ 0 1 0 1 0 1 0 1 ] \cdot 2^0$ = \
+$[ 1 0 1 0 1 0 1 0 0 ] \oplus [ 0 0 1 0 1 0 1 0 1 ]$ = $[ 1 0 0 0 0 0 0 0 1 ]$ \
+Since $[ 1 0 0 0 0 0 0 0 1 ]$ has the same degree as the generating polynomial we need to find: \
+$[ 1 0 0 0 0 0 0 0 1 ] \mod [ 1 0 0 0 1 1 0 1 1 ]$ \
+$[ 1 0 0 0 0 0 0 0 1 ] \oplus [ 1 0 0 0 1 1 0 1 1]$ = $[ 0 0 0 0 1 1 0 1 0 ]$
+Our result is then $[ 0 0 0 0 1 1 0 1 0 ]$ or 0x1a or 26.
 
 ### Finite Field Division
 Division between two values in GF( $2^8$ ) is done the same way as long division, however we use [Finite Field Subtraction](#finite-field-subtraction). \
@@ -291,7 +297,7 @@ Thus the result is $2^1 + 2^0$ or 3 and the remainder is $[ 0 1 1 ]$ or 3.
 Finding the inverse in a finite field can be done with a modified version of the [Extended Euclidean Algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm). The difference is instead of finding $s_{i}$ and $t_{i}$ we find the auxiliary. The auxiliary is found using the following formula where a is the auxiliary and q is the quotient \
 $a_{0} = 0$ \
 $a_{1} = 1$ \
-$a_{n} = a_{n - 2} \oplus a_{n - 1} \cdot q_{n}$ \
+$a_{n} = a_{n - 1} \cdot q_{n} + a_{n -2}$ \
 \
 We use the reducing polynomial as the dividend and the number we want to find the inverse of as the divisor. \
 For example to find the inverse of 0x15: \
@@ -308,14 +314,14 @@ $[ 1 0 1 0 1 ]\ /\ [ 0 1 0 1 0]$ \
 $[ 1 0 1 0 1 ] \oplus [ 0 1 0 1 0] \cdot 2^1$ = $[ 1 0 1 0 1 ] \oplus [ 1 0 1 0 0 ]$ = $[0 0 0 0 1]$ \
 The quotient is $2^1$ and the remainder is $[ 0 0 0 0 1 ]$ \
 \
-The next step would be to divide the previous remainder by this remainder until our remainder is 1 but since this remainder is one we'll stop here. \
+The next step would be to divide the previous remainder by this remainder until our remainder is 1 but since this remainder is 1 we'll stop here. \
 \
 We can then create a table of our results
 | Remainder               | Quotient           | Auxiliary                                                  |
 | ----------------------- | ------------------ | ---------------------------------------------------------- |
 | $[ 1 0 0 0 1 1 0 1 1 ]$ |	                   | $0$                                                        |
 | $[ 0 0 0 0 1 0 1 0 1 ]$ |                    | $1$                                                        |
-| $[ 0 0 0 0 0 1 0 1 0 ]$ | $2^4 + 2^2 + 2^0$  | $1(2^4 + 2^2 + 2^0) + 0$ = $2^4 + 2^2 + 2^0$               |
-| $[ 0 0 0 0 0 0 0 0 1 ]$ | $2^1$              | $1 + 2^1 \cdot ( 2^4 + 2^2 + 2^0)$ = $2^5 + 2^3 + 2^1 + 1$ |
+| $[ 0 0 0 0 0 1 0 1 0 ]$ | $2^4 + 2^2 + 2^0$  | $1 \cdot (2^4 + 2^2 + 2^0) + 0$ = $2^4 + 2^2 + 2^0$               |
+| $[ 0 0 0 0 0 0 0 0 1 ]$ | $2^1$              | $2^1 \cdot ( 2^4 + 2^2 + 2^0) + 1$ = $2^5 + 2^3 + 2^1 + 1$ |
 
 We take the auxiliary when our remainder is 1 and that is our inverse. So the inverse of 0x15 with the AES generating polynomial is $2^5 + 2^3 + 2^1 + 1$ or 0x2b
