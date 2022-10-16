@@ -57,6 +57,19 @@ Decryption has the same number of round as encryption. The difference is that th
 
 
 ## Steps In Depth
+### Notation
+The state is represented below with an operation that does nothing:
+```
+---------------------           ---------------------
+| s0 | s4 | s8 | sc |       \   | s0 | s4 | s8 | sc |
+| s1 | s5 | s9 | sd |  ------\  | s1 | s5 | s9 | sd |
+| s2 | s6 | sa | se |  ------/  | s2 | s6 | sa | se |
+| s3 | s7 | sb | sf |       /   | s3 | s7 | sb | sf |
+---------------------           ---------------------
+```
+With a real operation the left side would be the state before and the right side would be after the operation.
+
+
 ### Round Constants
 if $i = 1$ then $rc_{i} = 1$ \
 if $i > 1$ and $rc_{i-1} < 0x80$ then $rc_{i} = 2 \cdot rc_{i-1}$ \
@@ -106,22 +119,13 @@ The shift rows step is performed by taking the state and moving each row based o
 The 0th row is not shifted. The 1st row is shift by one and so on. This mean that the operation as a whole looks like this:
 ```
 ---------------------           ---------------------
-| m0 | m4 | m8 | mc |       \   | m0 | m4 | m8 | mc |
-| m1 | m5 | m9 | md |  ------\  | md | m1 | m5 | m9 |
-| m2 | m6 | ma | me |  ------/  | ma | me | m2 | m6 |
-| m3 | m7 | mb | mf |       /   | m7 | mb | mf | m3 |
+| s0 | s4 | s8 | sc |       \   | s0 | s4 | s8 | sc |
+| s1 | s5 | s9 | sd |  ------\  | sd | s1 | s5 | s9 |
+| s2 | s6 | sa | se |  ------/  | sa | se | s2 | s6 |
+| s3 | s7 | sb | sf |       /   | s7 | sb | sf | s3 |
 ---------------------           ---------------------
 ```
 ### Mix Columns
-
-```
----------------------			---------------------
-| m0 | m4 | m8 | mc |		\	| m0 | m4 | m8 | mc |
-| m1 | m5 | m9 | md |  ------\ 	| m1 | m5 | m9 | md |
-| m2 | m6 | ma | me |  ------/	| m2 | m6 | ma | me |
-| m3 | m7 | mb | mf |		/	| m3 | m7 | mb | mf |
----------------------			---------------------
-```
 
 
 ## Finite Field Math
