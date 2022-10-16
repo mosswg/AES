@@ -67,7 +67,7 @@ The state is represented below where ``si`` denotes the byte of the state and in
 | s3 | s7 | sb | sf |       /   | s3 | s7 | sb | sf |
 ---------------------           ---------------------
 ```
-With a real operation the left side would be the state before and the right side would be after the operation.
+This would denote an operation where the state is not modified. With a real operation the left side would be the state before and the right side would be after the operation.
 
 
 ### Round Constants
@@ -93,8 +93,15 @@ These keys are placed into an array of 32-bit value where each set of four value
 
 ### Add Round Key
 #### Encryption
-Using the round key of the current round gotten from the key expansion, each byte of the round key is xored with the state. This is done with the following where each value is 32-bit and b is the state before the operation, w is the round key, and s is the resulting state. \
-$[ b_{0}\ b_{1}\ b_{2}\ b_{3} ] \oplus [ w_{0}\ w_{1}\ w_{2}\ w_{3} ] = [ s_{0}\ s_{1}\ s_{2}\ s_{3} ]$
+Using the round key of the current round gotten from the key expansion, each byte of the round key is xored with the state. This is done with the following where ``wi`` is the ``i``th byte of the current round key and ``ai`` is ``si xor wi``:
+```
+---------------------           ---------------------
+| s0 | s4 | s8 | sc |       \   | a0 | a4 | a8 | ac |
+| s1 | s5 | s9 | sd |  ------\  | a1 | a5 | a9 | ad |
+| s2 | s6 | sa | se |  ------/  | a2 | a6 | aa | ae |
+| s3 | s7 | sb | sf |       /   | a3 | a7 | ab | af |
+---------------------           ---------------------
+```
 #### Decryption
 Since addition is the same as substraction in GF( $2^8$ ) the encryption and decryption methods are the same for this step.
 
@@ -102,6 +109,7 @@ Since addition is the same as substraction in GF( $2^8$ ) the encryption and dec
 S-Box Arrays: [Wikipedia](https://en.wikipedia.org/wiki/Rijndael_S-box)
 #### Encryption
 The Sub Bytes step uses an array of 256-bytes indexed with each byte in the state and the result in placed back into the state in the same position. The pre-computed S-Box values can be found at the link above. \
+\
 The state modification can be seen below where ``S`` is the S-Box array:
 ```
 ---------------------           ---------------------------------
@@ -122,6 +130,7 @@ The values of the S-Box are found by the following steps: \
 	2. Vector Addition - The bits resulting from the Matrix Multiplaction are then xored with the bits representing 0x63.
 
 The inverse S-Box array can be found by simply swapping the values and indexes of the S-Box array. \
+\
 The state modification for the inverse S-Box can be seen below where ``S`` is the Inverse S-Box array:
 ```
 ---------------------           ---------------------------------
@@ -135,7 +144,8 @@ The state modification for the inverse S-Box can be seen below where ``S`` is th
 
 ### Shift Rows
 The shift rows step is performed by taking the state and moving each row based on its position. If we call the first row the 0th row it's easier to understand: \
-The 0th row is not shifted. The 1st row is shift by one and so on. This mean that the operation as a whole looks like this:
+The 0th row is not shifted. The 1st row is shift by one and so on. \
+This mean that the operation as a whole looks like this:
 ```
 ---------------------           ---------------------
 | s0 | s4 | s8 | sc |       \   | s0 | s4 | s8 | sc |
