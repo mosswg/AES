@@ -102,7 +102,7 @@ Since addition is the same as substraction in GF( $2^8$ ) the encryption and dec
 S-Box Arrays: [Wikipedia](https://en.wikipedia.org/wiki/Rijndael_S-box)
 #### Encryption
 The Sub Bytes step uses an array of 256-bytes indexed with each byte in the state and the result in placed back into the state in the same position. The pre-computed S-Box values can be found at the link above. \
-The State modification can be seen below where ``S`` is the S-Box array:
+The state modification can be seen below where ``S`` is the S-Box array:
 ```
 ---------------------           ---------------------------------
 | s0 | s4 | s8 | sc |       \   | S[s0] | S[s4] | S[s8] | S[sc] |
@@ -121,7 +121,16 @@ The values of the S-Box are found by the following steps: \
 	1. Matrix Multiplication - The bits of the inverse are used in a matrix multiplication in GF( $2^8$ ).
 	2. Vector Addition - The bits resulting from the Matrix Multiplaction are then xored with the bits representing 0x63.
 
-The inverse S-Box array can be found by simply swapping the values and indexes of the S-Box array.
+The inverse S-Box array can be found by simply swapping the values and indexes of the S-Box array. \
+The state modification for the inverse S-Box can be seen below where ``S`` is the Inverse S-Box array:
+```
+---------------------           ---------------------------------
+| s0 | s4 | s8 | sc |       \   | S[s0] | S[s4] | S[s8] | S[sc] |
+| s1 | s5 | s9 | sd |  ------\  | S[s1] | S[s5] | S[s9] | S[sd] |
+| s2 | s6 | sa | se |  ------/  | S[s2] | S[s6] | S[sa] | S[se] |
+| s3 | s7 | sb | sf |       /   | S[s3] | S[s7] | S[sb] | S[sf] |
+---------------------           ---------------------------------
+```
 
 
 ### Shift Rows
