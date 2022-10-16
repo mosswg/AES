@@ -158,10 +158,10 @@ This mean that the operation as a whole looks like this:
 ```
 ### Mix Columns
 The mix columns step can be done in two ways. Polynomial multiplication and matrix multiplication. This project mainly uses the polynomial multiplication method, however the inverse function uses matrix multiplication.
+For mix columns we need to define a constant polynomial $a(x) = 3x^3 + x^2 + x + 2$ and a polynomial derived from the byte of the column $b(x) = b_{3}x^3 + b_{2}x^2 + b_{1}x + b_{0}$. This step also uses a different generating polynomial of $x^4 + 1$
 
 #### Polynomial method
-This method starts by defining a constant polynomial $a(x) = 3x^3 + x^2 + x + 2$ and a polynomial derived from the byte of the column $b(x) = b_{3}x^3 + b_{2}x^2 + b_{1}x + b_{0}$. \
-We then find $c(x)$ which is a seven-term polyonmial defined as $c(x) = a(x) \cdot b(x)$. We can also find $c(x)$ with: \
+For this method need to find $c(x)$ which is a seven-term polyonmial defined as $c(x) = a(x) \cdot b(x)$. We can also find $c(x)$ with: \
 $c_{0} = a_{0} \cdot b_{0}$ \
 $c_{1} = a_{1} \cdot b_{0} \oplus a_{0} \cdot b_{1}$ \
 $c_{2} = a_{2} \cdot b_{0} \oplus a_{1} \cdot b_{1} \oplus a_{0} \cdot b_{2}$ \
@@ -178,7 +178,16 @@ $d_{3} = c_{3}$ \
 the $d$ values are then placed into the matrix where $b_{0}$ becomes $d_{0}$ and so on.
 
 #### Matrix method
-This method does a matrix multiplication of the matrix: \
+This method does a matrix multiplication of the matrix:
+```
+-----------------
+| a0 | a3 | a2 | a1 |
+| a1 | a0 | a3 | a2 |
+| a2 | a1 | a0 | a3 |
+| a3 | a2 | a1 | a0 |
+-----------------
+```
+or
 ```
 -----------------
 | 2 | 3 | 1 | 1 |
@@ -188,12 +197,19 @@ This method does a matrix multiplication of the matrix: \
 -----------------
 ```
 With the vector [ $b_{0}$ $b_{1}$ $b_{2}$ $b_{3}$ ]. The values of $d$ are then found with: \
+$d_{0} = a_{0} \cdot b_{0} \oplus a_{3} \cdot b_{1} \oplus a_{2} \cdot b_{2} \oplus a_{1} \cdot b_{3}$ \
+$d_{1} = a_{1} \cdot b_{0} \oplus a_{0} \cdot b_{1} \oplus a_{3} \cdot b_{2} \oplus a_{2} \cdot b_{3}$ \
+$d_{2} = a_{2} \cdot b_{0} \oplus a_{1} \cdot b_{1} \oplus a_{0} \cdot b_{2} \oplus a_{3} \cdot b_{3}$ \
+$d_{3} = a_{3} \cdot b_{0} \oplus a_{2} \cdot b_{1} \oplus a_{1} \cdot b_{2} \oplus a_{0} \cdot b_{3}$ \
+or \
 $d_{0} = 2 \cdot b_{0} \oplus 3 \cdot b_{1} \oplus 1 \cdot b_{2} \oplus 1 \cdot b_{3}$ \
 $d_{1} = 1 \cdot b_{0} \oplus 2 \cdot b_{1} \oplus 3 \cdot b_{2} \oplus 1 \cdot b_{3}$ \
 $d_{2} = 1 \cdot b_{0} \oplus 1 \cdot b_{1} \oplus 2 \cdot b_{2} \oplus 3 \cdot b_{3}$ \
 $d_{3} = 3 \cdot b_{0} \oplus 1 \cdot b_{1} \oplus 1 \cdot b_{2} \oplus 2 \cdot b_{3}$ \
+This multiplication is not regular multiplication however. TODO: Add description of multiplication.
 
-The state view of either of these method can be seen with the following where ``dij`` is $d_{j}$ of column ``i``:
+#### State Modification For Either Method
+The state modification of either of these method can be seen with the following where ``dij`` is $d_{j}$ of column ``i``:
 ```
 ---------------------           -------------------------
 | s0 | s4 | s8 | sc |       \   | d00 | d10 | d20 | d30 |
@@ -202,6 +218,39 @@ The state view of either of these method can be seen with the following where ``
 | s3 | s7 | sb | sf |       /   | d03 | d13 | d23 | d33 |
 ---------------------           -------------------------
 ```
+
+#### Decryption
+For decryption mix columns uses the inverse of $a(x)$ which is $a'(x) = 11x^3 + 13x^2 + 9x + 14$. This project only implements the inverse of mix columns using matrix multiplication. \
+
+The inverse matrix method does a matrix multiplication of the matrix using $a'(x)$:
+```
+-------------------------
+| a'0 | a'3 | a'2 | a'1 |
+| a'1 | a'0 | a'3 | a'2 |
+| a'2 | a'1 | a'0 | a'3 |
+| a'3 | a'2 | a'1 | a'0 |
+-------------------------
+```
+or
+```
+---------------------
+| 14 | 11 | 13 | 9  |
+| 9  | 14 | 11 | 13 |
+| 13 | 9  | 14 | 11 |
+| 11 | 13 | 9  | 14 |
+---------------------
+```
+With the vector [ $b_{0}$ $b_{1}$ $b_{2}$ $b_{3}$ ]. The values of $d$ are then found with: \
+$d_{0} = a'_{0} \cdot b_{0} \oplus a'_{3} \cdot b_{1} \oplus a'_{2} \cdot b_{2} \oplus a'_{1} \cdot b_{3}$ \
+$d_{1} = a'_{1} \cdot b_{0} \oplus a'_{0} \cdot b_{1} \oplus a'_{3} \cdot b_{2} \oplus a'_{2} \cdot b_{3}$ \
+$d_{2} = a'_{2} \cdot b_{0} \oplus a'_{1} \cdot b_{1} \oplus a'_{0} \cdot b_{2} \oplus a'_{3} \cdot b_{3}$ \
+$d_{3} = a'_{3} \cdot b_{0} \oplus a'_{2} \cdot b_{1} \oplus a'_{1} \cdot b_{2} \oplus a'_{0} \cdot b_{3}$ \
+or \
+$d_{0} = 14 \cdot b_{0} \oplus 11 \cdot b_{1} \oplus 13 \cdot b_{2} \oplus 9 \cdot b_{3}$ \
+$d_{1} = 9 \cdot b_{0} \oplus 14 \cdot b_{1} \oplus 11 \cdot b_{2} \oplus 13 \cdot b_{3}$ \
+$d_{2} = 13 \cdot b_{0} \oplus 9 \cdot b_{1} \oplus 14 \cdot b_{2} \oplus 11 \cdot b_{3}$ \
+$d_{3} = 11 \cdot b_{0} \oplus 13 \cdot b_{1} \oplus 9 \cdot b_{2} \oplus 14 \cdot b_{3}$
+
 
 
 ## Finite Field Math
