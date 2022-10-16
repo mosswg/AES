@@ -403,51 +403,7 @@ void aes_reverse_shift_rows(std::vector<uint32_t>& state) {
 }
 
 uint8_t aes_mix_column_multiply(uint8_t a, uint8_t b) {
-    uint8_t polynomial = 0b00011011;
-
-    switch (a) {
-        case 1:
-            /// b
-            return b;
-        case 2:
-            /// b * 2
-            return b << 1 ^ ((b >> 7 & 1) * polynomial);
-        case 3:
-            /// b * 2 + b
-            return ((b << 1) ^ ((b >> 7 & 1) * polynomial) ^ b);
-        case 4: {
-            // b * 2 * 2
-            uint8_t b2 = b << 1 ^ ((b >> 7 & 1) * polynomial);
-            return b2 << 1 ^ ((b2 >> 7 & 1) * polynomial);
-        }
-        case 9: {
-            /// (b * 2 * 2 * 2) + b
-            uint8_t b2 = b << 1 ^ ((b >> 7 & 1) * polynomial);
-            uint8_t b4 = b2 << 1 ^ ((b2 >> 7 & 1) * polynomial);
-            return (b4 << 1 ^ ((b4 >> 7 & 1) * polynomial)) ^ b;
-        }
-        case 11: {
-            /// (b * 4 + b) * 2 + b
-            uint8_t b2 = b << 1 ^ ((b >> 7 & 1) * polynomial);
-            uint8_t b5 = (b2 << 1 ^ ((b2 >> 7 & 1) * polynomial)) ^ b;
-            return (b5 << 1 ^ ((b5 >> 7 & 1) * polynomial)) ^ b;
-        }
-        case 13: {
-            /// ((b * 2 + b) * 2 * 2) + b
-            uint8_t b3 = (b << 1 ^ ((b >> 7 & 1) * polynomial)) ^ b;
-            uint8_t b6 = (b3 << 1 ^ ((b3 >> 7 & 1) * polynomial));
-            return (b6 << 1 ^ ((b6 >> 7 & 1) * polynomial)) ^ b;
-        }
-        case 14: {
-            /// ((b * 2 + b) * 2 + b) * 2
-            uint8_t b3 = (b << 1 ^ ((b >> 7 & 1) * polynomial)) ^ b;
-            uint8_t b7 = (b3 << 1 ^ ((b3 >> 7 & 1) * polynomial)) ^ b;
-            return (b7 << 1 ^ ((b7 >> 7 & 1) * polynomial));
-        }
-        default:
-            std::cerr << "AES MULTIPLICATION ERROR: Invalid value in a: " << (int)a << std::endl;
-            exit(4);
-    }
+    return gf2_8_multiplication(a, b, AES_IRREDUCIBLE_POLYNOMIAL);
 }
 /**
  *

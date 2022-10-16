@@ -158,7 +158,7 @@ This mean that the operation as a whole looks like this:
 ```
 ### Mix Columns
 The mix columns step can be done in two ways. Polynomial multiplication and matrix multiplication. This project mainly uses the polynomial multiplication method, however the inverse function uses matrix multiplication.
-For mix columns we need to define a constant polynomial $a(x) = 3x^3 + x^2 + x + 2$ and a polynomial derived from the byte of the column $b(x) = b_{3}x^3 + b_{2}x^2 + b_{1}x + b_{0}$. This step also uses a different generating polynomial of $x^4 + 1$
+For mix columns we need to define a constant polynomial $a(x) = 3x^3 + x^2 + x + 2$ and a polynomial derived from the byte of the column $b(x) = b_{3}x^3 + b_{2}x^2 + b_{1}x + b_{0}$.
 
 #### Polynomial method
 For this method need to find $c(x)$ which is a seven-term polyonmial defined as $c(x) = a(x) \cdot b(x)$. We can also find $c(x)$ with: \
@@ -206,7 +206,7 @@ $d_{0} = 2 \cdot b_{0} \oplus 3 \cdot b_{1} \oplus 1 \cdot b_{2} \oplus 1 \cdot 
 $d_{1} = 1 \cdot b_{0} \oplus 2 \cdot b_{1} \oplus 3 \cdot b_{2} \oplus 1 \cdot b_{3}$ \
 $d_{2} = 1 \cdot b_{0} \oplus 1 \cdot b_{1} \oplus 2 \cdot b_{2} \oplus 3 \cdot b_{3}$ \
 $d_{3} = 3 \cdot b_{0} \oplus 1 \cdot b_{1} \oplus 1 \cdot b_{2} \oplus 2 \cdot b_{3}$ \
-This multiplication is not regular multiplication however. TODO: Add description of multiplication.
+Keep in mind that this is [multiplication over GF(2^8)](#finite-field-multiplication):
 
 #### State Modification For Either Method
 The state modification of either of these method can be seen with the following where ``dij`` is $d_{j}$ of column ``i``:
