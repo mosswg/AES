@@ -222,9 +222,9 @@ The state modification of either of these method can be seen with the following 
 ```
 
 #### Decryption
-For decryption mix columns uses the inverse of $a(x)$ which is $a'(x) = 11x^3 + 13x^2 + 9x + 14$. This project only implements the inverse of mix columns using matrix multiplication. \
+For decryption mix columns uses the inverse of $a(x)$ which is $a\prime(x) = 11x^3 + 13x^2 + 9x + 14$. This project only implements the inverse of mix columns using matrix multiplication. \
 
-The inverse matrix method does a matrix multiplication of the matrix using $a'(x)$:
+The inverse matrix method does a matrix multiplication of the matrix using $a\prime(x)$:
 ```
 -------------------------
 | a'0 | a'3 | a'2 | a'1 |
