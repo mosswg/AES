@@ -9,7 +9,10 @@ This project is vulnerable to a number of attacks and makes no attempt to guard 
 
 # How it works
 ## Overview
-There are a different number of rounds based on the key size (128-bit, 196-bit, or 256-bit). This project uses 128-bit keys because they require the least amount of work. The steps are the same for each key size you just do more of the same step for the larger keys. The AES algorithm is broken into rounds. They also include a few initial steps and a few proceeding steps. The bytes of the message are referred to as the "state". AES operates within a [GF(2^8) finite field](#finite-field-math). While understanding finite field arithmatic is not strictly necessary for understanding AES implemations it is necessary for understanding the math behind the algorithm. \
+There are a different number of rounds based on the key size (128-bit, 196-bit, or 256-bit). This project uses 128-bit keys because they require the least amount of work. The only step that is different with different key sizes is the [Key Expansion](#key-expansion). All the other steps are the same for each key size. The AES algorithm is broken into rounds. There are also a few initial steps and a few proceeding steps. The bytes of the message are referred to as the "state". \
+\
+AES operates within a [GF(2^8) finite field](#finite-field-math). While understanding finite field arithmatic is not strictly necessary for understanding AES implemations it is necessary for understanding the math behind the algorithm. \
+\
 Note: The state is stored as a vector of 32-bit integers. However, due to the way AES operates it is stored rotated from the way operations are done. This means that each 32-bit value in the vector is a column rather than a row.
 
 
@@ -58,7 +61,7 @@ Decryption has the same number of round as encryption. The difference is that th
 
 ## Steps In Depth
 ### Notation
-The state is represented below where ``si`` denotes the byte of the state and index ``i`` (e.g. ``s0`` is the 1st byte, ``s5`` is the 6th byte, and ``se`` is the 15th byte):
+The state is represented below where ``si`` denotes the byte of the state at index ``i`` (e.g. ``s0`` is the 1st byte, ``s5`` is the 6th byte, and ``se`` is the 15th byte):
 ```
 ---------------------           ---------------------
 | s0 | s4 | s8 | sc |       \   | s0 | s4 | s8 | sc |
