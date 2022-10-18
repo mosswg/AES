@@ -11,14 +11,9 @@ This project is vulnerable to a number of attacks and makes no attempt to guard 
 ## Overview
 There are a different number of rounds based on the key size (128-bit, 196-bit, or 256-bit). This project uses 128-bit keys because they require the least amount of work. The only step that is different with different key sizes is the [Key Expansion](#key-expansion). All the other steps are the same for each key size. The AES algorithm is broken into rounds. There are also a few initial steps and a few proceeding steps. The bytes of the message are referred to as the "state". \
 \
-AES operates within a [GF(2^8) finite field](#finite-field-math). While understanding finite field arithmatic is not strictly necessary for understanding AES implemations it is necessary for understanding the math behind the algorithm. \
+AES operates within a [GF(2^8) finite field](#finite-field-math). While understanding finite field arithmatic is not strictly necessary for understanding how AES is implemented it is necessary for understanding how the algorithm works and why certain steps are done. \
 \
 Note: The state is stored as a vector of 32-bit integers. However, due to the way AES operates it is stored rotated from the way operations are done. This means that each 32-bit value in the vector is a column rather than a row.
-
-
-## Notation
-$\oplus$ denotes an xor operation. \
-[ $b_{0}$ 	$b_{1}$ 	$b_{2}$ 	$b_{3}$] denotes the bytes of a 32-bit value where $b_{0}$ is the first byte in little endian and so on.
 
 ## Rounds
 ### Encryption
@@ -60,18 +55,29 @@ Decryption has the same number of round as encryption. The difference is that th
 
 
 ## Steps In Depth
+
 ### Notation
+$\oplus$ denotes an xor operation. \
+[ $b_{0}$ 	$b_{1}$ 	$b_{2}$ 	$b_{3}$] denotes the bytes of a 32-bit value where $b_{0}$ is the first byte in little endian, $b_{1}$ is the second and so on. \
 The state is represented below where ``si`` denotes the byte of the state at index ``i`` (e.g. ``s0`` is the 1st byte, ``s5`` is the 6th byte, and ``se`` is the 15th byte):
 ```
+---------------------
+| s0 | s4 | s8 | sc |
+| s1 | s5 | s9 | sd |
+| s2 | s6 | sa | se |
+| s3 | s7 | sb | sf |
+---------------------
+```
+This notation can also be used to show an operation. Every operation represented like this will have some explanitory text before showing the operation. \
+For example. Below is the representation for adding 1 to every element where ``ai`` represent ``si + 1``:
+```
 ---------------------           ---------------------
-| s0 | s4 | s8 | sc |       \   | s0 | s4 | s8 | sc |
-| s1 | s5 | s9 | sd |  ------\  | s1 | s5 | s9 | sd |
-| s2 | s6 | sa | se |  ------/  | s2 | s6 | sa | se |
-| s3 | s7 | sb | sf |       /   | s3 | s7 | sb | sf |
+| s0 | s4 | s8 | sc |       \   | a0 | a4 | a8 | ac |
+| s1 | s5 | s9 | sd |  ------\  | a1 | a5 | a9 | ad |
+| s2 | s6 | sa | se |  ------/  | a2 | a6 | aa | ae |
+| s3 | s7 | sb | sf |       /   | a3 | a7 | ab | af |
 ---------------------           ---------------------
 ```
-This would denote an operation where the state is not modified. With a real operation the left side would be the state before and the right side would be after the operation.
-
 
 ### Round Constants
 if $i = 1$ then $rc_{i} = 1$ \
