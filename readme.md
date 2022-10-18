@@ -58,7 +58,9 @@ Decryption has the same number of round as encryption. The difference is that th
 
 ### Notation
 $\oplus$ denotes an xor operation. \
+\
 [ $b_{0}$ 	$b_{1}$ 	$b_{2}$ 	$b_{3}$] denotes the bytes of a 32-bit value where $b_{0}$ is the first byte in little endian, $b_{1}$ is the second and so on. \
+\
 The state is represented below where ``si`` denotes the byte of the state at index ``i`` (e.g. ``s0`` is the 1st byte, ``s5`` is the 6th byte, and ``se`` is the 15th byte):
 ```
 ---------------------
@@ -68,8 +70,8 @@ The state is represented below where ``si`` denotes the byte of the state at ind
 | s3 | s7 | sb | sf |
 ---------------------
 ```
-This notation can also be used to show an operation. Every operation represented like this will have some explanitory text before showing the operation. \
-For example. Below is the representation for adding 1 to every element where ``ai`` represent ``si + 1``:
+This notation can also be used to show an operation. For example:
+Below is the representation for adding 1 to every element where ``ai`` represent ``si + 1``:
 ```
 ---------------------           ---------------------
 | s0 | s4 | s8 | sc |       \   | a0 | a4 | a8 | ac |
@@ -82,9 +84,9 @@ For example. Below is the representation for adding 1 to every element where ``a
 ### Round Constants
 if $i = 1$ then $rc_{i} = 1$ \
 if $i > 1$ and $rc_{i-1} < 0x80$ then $rc_{i} = 2 \cdot rc_{i-1}$ \
-if $i > 1$ and $rc_{i-1} > 0x80$ then $rc_{i} = 2 \cdot rc_{i-1} \oplus 0x11b$ \
+if $i > 1$ and $rc_{i-1} > 0x80$ then $rc_{i} = (2 \cdot rc_{i-1}) \oplus 0x11b$ \
 \
-$rc$ values are then expanded from an byte value into four byte round constant values with: [ $rc_{i}$		$0$		$0$		$0$ ]
+$rc$ values are then expanded from an byte value into four byte round constant values with: $rcon_{i}$ = [ $rc_{i}$		$0$		$0$		$0$ ]
 
 ### Key Expansion
 The key expansion uses [Round Constants](#round-constants) and two functions:
