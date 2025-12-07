@@ -3,7 +3,7 @@ This implemetation uses SHA-256 (not implemented by me) to derive keys (basicall
 
 # Resources use
 * [https://www.kavaliro.com/wp-content/uploads/2014/03/AES.pdf](https://www.kavaliro.com/wp-content/uploads/2014/03/AES.pdf)
-* [https://sites.math.washington.edu/~morrow/336_12/papers/juan.pdf](https://sites.math.washington.edu/~morrow/336_12/papers/juan.pdf)
+* [https://cs.slu.edu/~espositof/teaching/4530/resources/GaloisFieldTutorial.pdf](https://cs.slu.edu/~espositof/teaching/4530/resources/GaloisFieldTutorial.pdf)
 * [https://en.wikipedia.org/wiki/Advanced_Encryption_Standard](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
 * [https://www.angelfire.com/biz7/atleast/mix_columns.pdf](https://www.angelfire.com/biz7/atleast/mix_columns.pdf)
 
@@ -314,10 +314,10 @@ $d_{3} = 11 \cdot b_{0} \oplus 13 \cdot b_{1} \oplus 9 \cdot b_{2} \oplus 14 \cd
 AES_IRREDUCIBLE_POLYNOMIAL = 0b100011011
 /// Encryption using the matrix multiplication method
 function mix_column_matrix(column)
-	column = [((gf8_multiply(2, column[0], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[1], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[2] ^ column[3]) & 0xff),
-				(gf8_multiply(2, column[1], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[2], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[3] ^ column[0]) & 0xff,
-				(gf8_multiply(2, column[2], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[3], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[0] ^ column[1]) & 0xff,
-				(gf8_multiply(2, column[3], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[0], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[1] ^ column[2]) & 0xff];
+	column = [gf8_multiply(2, column[0], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[1], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[2] ^ column[3]) & 0xff,
+				gf8_multiply(2, column[1], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[2], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[3] ^ column[0]) & 0xff,
+				gf8_multiply(2, column[2], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[3], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[0] ^ column[1]) & 0xff,
+				gf8_multiply(2, column[3], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[0], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[1] ^ column[2]) & 0xff];
 
 
 /// Decryption using the matrix multiplication method
@@ -330,7 +330,7 @@ function inverse_mix_column_matrix(column)
 
 
 ## Finite Field Math
-Other Resources: [Wikipedia](https://en.wikipedia.org/wiki/Finite_field_arithmetic), [Galois Field in Cryptography](https://sites.math.washington.edu/~morrow/336_12/papers/juan.pdf) \
+Other Resources: [Wikipedia](https://en.wikipedia.org/wiki/Finite_field_arithmetic), [Galois Field in Cryptography](https://cs.slu.edu/~espositof/teaching/4530/resources/GaloisFieldTutorial.pdf) \
 Notes: This project uses Galois Field and Finite Field interchangably and unless explicitly stated the generating polynomial is $x^8 + x^4 + x^3 + x + 1$.
 ### Basics
 Finite Fields are a field containing a finite number of elements from 0 to $p^n$ where $p$ is a prime and $n$ is a positive integer. For all math in this project $p$ is 2 and $n$ is 8 giving us the field GF( $2^8$ ).
