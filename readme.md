@@ -1,11 +1,14 @@
 # History
-AES was created in 2001 by NIST as a replacement for DES. This implemetation uses SHA-256 (not implemented by me) to derive keys (basically making them 256-bits long). In real use, PBKDF2 is common but too complex to include in this project. The implementation is done in typescript which is transpiled to javascript to run in the browser. The compiled javascript is included so complilation is not needed. To compile, run `tsc aes.ts` which creates `aes.js`. Then, the two lines `Object.defineProperty(exports, "__esModule", { value: true });` and `var $ = require("jquery");` must be deleted as they are for using nodejs and not the browser (I couldn't figure out targeting the browser with typescript). Then `home.html` can opened in a browser (this was only tested in firefox but it should work the same in chrome, safari, etc.).
+AES was created in 2001 by NIST as a replacement for DES. This implemetation uses SHA-256 (not implemented by me) to derive keys (basically making them 256-bits long). In real use, PBKDF2 is common but too complex to include in this project. The implementation is done in typescript which is transpiled to javascript to run in the browser. The compiled javascript is included so complilation is not needed. To compile, run `tsc aes.ts` which creates `aes.js`. Then, the two lines `Object.defineProperty(exports, "__esModule", { value: true });` and `var $ = require("jquery");` must be deleted as they are for using nodejs and not the browser (I couldn't figure out targeting the browser with typescript). Then `home.html` can opened in a browser (this was only tested in firefox but it should work the same in chrome, safari, etc.). To run without the visualization open console or run in nodejs and use the function `aes_encrypt(data, key)` to encrypt and `aes_decrypt(encrypted_data, key)` to decrypt.
 
 # Resources use
 * [https://www.kavaliro.com/wp-content/uploads/2014/03/AES.pdf](https://www.kavaliro.com/wp-content/uploads/2014/03/AES.pdf)
 * [https://sites.math.washington.edu/~morrow/336_12/papers/juan.pdf](https://sites.math.washington.edu/~morrow/336_12/papers/juan.pdf)
 * [https://en.wikipedia.org/wiki/Advanced_Encryption_Standard](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
 * [https://www.angelfire.com/biz7/atleast/mix_columns.pdf](https://www.angelfire.com/biz7/atleast/mix_columns.pdf)
+
+# Tests
+Tests are in the `tests` directory. To run a test select a `.in` and its matching `.out` (e.g. `test01.in` and `test01.out`). Then, copy the function call from the `.in` file and compare its output to the `.out` file.
 
 # How it works
 ## Overview
@@ -21,7 +24,7 @@ There are a different number of round for each key size (9, 11, or 13 for 128, 1
 
 #### Initial Steps
 1. [Key Expansion](#key-expansion) - AES includes a key schedule so that there is one key for every round.
-2. [Add Round Key](#add-round-key) - The initial key (Not part of the key expansion) is added to the state.   
+2. [Add Round Key](#add-round-key) - The initial key (Not part of the key expansion) is added to the state.
 
 #### Round Steps
 1. [Sub Bytes](#sub-bytes) - The bytes of the state are substituted using constant array. 
