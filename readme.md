@@ -1,5 +1,5 @@
 # History
-AES was created in 2001 by NIST as a replacement for DES
+AES was created in 2001 by NIST as a replacement for DES. This implemetation uses SHA-256 (not implemented by me) to derive keys (basically making them 256-bits long). In real use, PBKDF2 is common but too complex to include in this project. The implementation is done in typescript which is transpiled to javascript to run in the browser. The compiled javascript is included so complilation is not needed. To compile, run `tsc aes.ts` which creates `aes.js`. Then, the two lines `Object.defineProperty(exports, "__esModule", { value: true });` and `var $ = require("jquery");` must be deleted as they are for using nodejs and not the browser (I couldn't figure out targeting the browser with typescript). Then `home.html` can opened in a browser (this was only tested in firefox but it should work the same in chrome, safari, etc.).
 
 # Resources use
 * [https://www.kavaliro.com/wp-content/uploads/2014/03/AES.pdf](https://www.kavaliro.com/wp-content/uploads/2014/03/AES.pdf)
