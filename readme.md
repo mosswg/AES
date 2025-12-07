@@ -109,14 +109,22 @@ Using the round key of the current round gotten from the key expansion, each byt
 This is done with the following where ``wi`` is the ``i``th byte of the current round key and ``ai`` is ``si xor wi``:
 ```
 ---------------------           ---------------------
-| s0 | s4 | s8 | sc |       \   | a0 | a4 | a8 | ac |
-| s1 | s5 | s9 | sd |  ------\  | a1 | a5 | a9 | ad |
-| s2 | s6 | sa | se |  ------/  | a2 | a6 | aa | ae |
-| s3 | s7 | sb | sf |       /   | a3 | a7 | ab | af |
+| s0 ^ w0 | s4 ^ w4 | s8 ^ w8 | sc ^ wc |       \   | a0 | a4 | a8 | ac |
+| s1 ^ w1 | s5 ^ w5 | s9 ^ w9 | sd ^ wd |  ------\  | a1 | a5 | a9 | ad |
+| s2 ^ w2 | s6 ^ w6 | sa ^ wa | se ^ we |  ------/  | a2 | a6 | aa | ae |
+| s3 ^ w3 | s7 ^ w7 | sb ^ wb | sf ^ wf |       /   | a3 | a7 | ab | af |
 ---------------------           ---------------------
 ```
 #### Decryption
 Since addition is the same as substraction in GF( $2^8$ ) the encryption and decryption methods are the same for this step.
+
+#### Pseudocode
+```
+// same for encryption and decryption
+function add_round_key(state, round_key):
+	for (i = 0; i < state.length; i++)
+		state[i] = state[i] xor round_key[i]
+```
 
 ### Sub Bytes
 S-Box Arrays: [Wikipedia](https://en.wikipedia.org/wiki/Rijndael_S-box)
@@ -154,6 +162,20 @@ The state modification for the inverse S-Box can be seen below where ``S`` is th
 ---------------------           ---------------------------------
 ```
 
+#### Pseudocode
+```
+/// This is assuming a precomputed s-box
+function s_box(state)
+	for (i = 0; i < state.length; i++)
+		state[i] = precomputed_s_box[state[i]];
+
+function inverse_s_box(state):
+	for (i = 0; i < state.length; i++)
+		state[i] = precomputed_inverse_s_box[round_key[i]]
+		/// Alternatively its possible to search through the regular s_box to find the inverse values but this is much slower
+		/// state[i] = precomputed_s_box.index_of(round_key[i]);
+```
+
 
 ### Shift Rows
 The shift rows step is performed by taking the state and moving each row based on its position. If we call the first row the 0th row it's easier to understand: \
@@ -167,6 +189,25 @@ This mean that the operation as a whole looks like this:
 | s3 | s7 | sb | sf |       /   | s7 | sb | sf | s3 |
 ---------------------           ---------------------
 ```
+#### Pseudocode
+```
+/// Encryption
+function shift_rows(state)
+	new_state = state
+	for (i = 0; i < state.length; i++)
+		index = i + (4 * floor(i % 4)) mod 16 // i + (4 * row_num)
+		new_state[index] = state[i]
+	state = new_state
+
+/// Decryption
+function reverse_shift_rows(state)
+	new_state = state
+	for (i = 0; i < state.length; i++)
+		index = i - (4 * floor(i % 4)) mod 16 // i - (4 * row_num)
+		new_state[index] = state[i]
+	state = new_state
+```
+
 ### Mix Columns
 Note: Most resources I found explain the multiplication for Mix Columns as using 0x1B as a polynomial without explaining why. 0x1B is just the regular irriducable polynomial with the last 8-bits chopped off. \
 \
@@ -265,6 +306,25 @@ $d_{2} = 13 \cdot b_{0} \oplus 9 \cdot b_{1} \oplus 14 \cdot b_{2} \oplus 11 \cd
 $d_{3} = 11 \cdot b_{0} \oplus 13 \cdot b_{1} \oplus 9 \cdot b_{2} \oplus 14 \cdot b_{3}$
 
 
+#### Pseudocode
+```
+AES_IRREDUCIBLE_POLYNOMIAL = 0b100011011
+/// Encryption using the matrix multiplication method
+function mix_column_matrix(column)
+	column = [((gf8_multiply(2, column[0], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[1], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[2] ^ column[3]) & 0xff),
+				(gf8_multiply(2, column[1], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[2], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[3] ^ column[0]) & 0xff,
+				(gf8_multiply(2, column[2], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[3], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[0] ^ column[1]) & 0xff,
+				(gf8_multiply(2, column[3], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(3, column[0], AES_IRREDUCIBLE_POLYNOMIAL) ^ column[1] ^ column[2]) & 0xff];
+
+
+/// Decryption using the matrix multiplication method
+function inverse_mix_column_matrix(column)
+	column = [gf8_multiply(14, column[0], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(11, column[1], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(13, column[2], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(9, column[3], AES_IRREDUCIBLE_POLYNOMIAL),
+		gf8_multiply(9, column[0], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(14, column[1], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(11, column[2], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(13, column[3], AES_IRREDUCIBLE_POLYNOMIAL),
+        gf8_multiply(13, column[0], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(9, column[1], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(14, column[2], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(11, column[3], AES_IRREDUCIBLE_POLYNOMIAL),
+        gf8_multiply(11, column[0], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(13, column[1], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(9, column[2], AES_IRREDUCIBLE_POLYNOMIAL) ^ gf8_multiply(14, column[3], AES_IRREDUCIBLE_POLYNOMIAL)];
+```
+
 
 ## Finite Field Math
 Other Resources: [Wikipedia](https://en.wikipedia.org/wiki/Finite_field_arithmetic), [Galois Field in Cryptography](https://sites.math.washington.edu/~morrow/336_12/papers/juan.pdf) \
@@ -281,8 +341,20 @@ It is important to not that the generating polynomial is not a valid value withi
 ### Finite Field Addition
 All addition in a finite field must be done modulo $p$. Since $p$ is always 2 in this project that means that all addition is modulo 2. Since addition modulo 2 is the same as the xor operation we can save a lot of computation time by just using xor instead of any addition operation.
 
+#### Pseudocode
+```
+function gf8_addition(a, b):
+	return a xor b
+```
+
 ### Finite Field Subtraction
 Since every addition operation is modulo 2 and there is no concept of negative numbers in GF( $2^8$ ) every substraction is the exact same as addition and therefore is just an xor operation.
+
+#### Pseudocode
+```
+function gf8_subtraction(a, b):
+	return a xor b
+```
 
 ### Finite Field Multiplication
 Multiplication between two values on the finite field is significantly more complex. Multiplication can be acheive by taking the placement of every bit of one value and shifting the second value by that placement and xoring each of these together. The result of the muliplication is moduloed by the generating polynomial and the result of this modulo is the result of the multiplication. Example: \
@@ -296,6 +368,24 @@ $[ 1 0 0 0 0 0 0 0 1 ] \mod [ 1 0 0 0 1 1 0 1 1 ]$ \
 $[ 1 0 0 0 0 0 0 0 1 ] \oplus [ 1 0 0 0 1 1 0 1 1]$ = $[ 0 0 0 0 1 1 0 1 0 ]$ \
 Our result is then $[ 0 0 0 0 1 1 0 1 0 ]$ or 0x1a or 26.
 
+#### Pseudocode
+```
+function gf8_multiplication(a, b, polynomial)
+	output = 0;
+
+	for (bit = 0; bit < 8; bit++) {
+		if ((b >> bit) & (0b1)) {
+			output ^= a << bit;
+		}
+	}
+
+	if (degree(output) >= degree(polynomial))
+		/// reduce the result
+		output = output xor polynomial
+
+	return output
+```
+
 ### Finite Field Division
 Division between two values in GF( $2^8$ ) is done the same way as long division, however we use [Finite Field Subtraction](#finite-field-subtraction). \
 Example: \
@@ -304,6 +394,9 @@ $10\ /\ 7$ = $[ 1 0 1 0 ]\ /\ [ 1 1 1 ]$:
 2. $[ 0 1 0 0] \oplus [ 1 1 1 ] \cdot 2^0$ = $[ 0 1 1 ]$
 
 Thus the result is $2^1 + 2^0$ or 3 and the remainder is $[ 0 1 1 ]$ or 3.
+
+#### Psuedocode
+No psuedocode is included since this is only used for finding inverse and that is not used in the typescript implemetation. An implementation of this is in the c++ code.
 
 ### Finite Field Inverse
 Finding the inverse in a finite field can be done with a modified version of the [Extended Euclidean Algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm). The difference is instead of finding $s_{i}$ and $t_{i}$ we find the auxiliary. The auxiliary is found using the following formula where a is the auxiliary and q is the quotient \
@@ -337,3 +430,7 @@ We can then create a table of our results
 | $[ 0 0 0 0 0 0 0 0 1 ]$ | $2^1$              | $2^1 \cdot ( 2^4 + 2^2 + 2^0) + 1$ = $2^5 + 2^3 + 2^1 + 1$ |
 
 We take the auxiliary when our remainder is 1 and that is our inverse. So the inverse of 0x15 with the AES generating polynomial is $2^5 + 2^3 + 2^1 + 1$ or 0x2b
+
+
+#### Psuedocode
+No psuedocode is included since this is only used for finding inverse and that is not used in the typescript implemetation. An implementation of this is in the c++ code.
