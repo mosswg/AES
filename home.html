@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+<script src="aes.js"></script>
+<script>
+  let current_aes_state = null;
+  function start_aes(data, key) {
+    current_aes_state = aes_start(data, key);
+    display_aes_original(data);
+    display_aes_state(current_aes_state.state, '#aes-2-');
+    $("#aes-1-2-symbol").html("->");
+    $("#aes-submit-button").addClass("hidden");
+    $("#aes-next-button").removeClass("hidden");
+    $("#aes-substep-button").removeClass("hidden");
+	$("#aes-step-name").html("Create State Matrix");
+  }
+  function start_aes_decrypt(state) {
+	state.decrypt = true;
+    $("#aes-decrypt-button").addClass("hidden");
+    $("#aes-next-button").removeClass("hidden");
+    // $("#aes-substep-button").removeClass("hidden");
+  }
+</script>
+<style>
+  .hidden {
+    display: none !important;
+  }
+</style>
+</head>
+<body style="display: flex; flex-direction: column; justify-content: center">
+
+  <h1 style="text-align: center;">AES</h1>
+  <div id="aes-input" style="display: flex; justify-content: center; flex-direction: row;">
+    <div style="margin: 5px;"><input id="aes-data" type="text" placeholder="Data"></div>
+    <div style="margin: 5px;"><input id="aes-key" type="text" placeholder="Key"></div>
+  </div>
+  <div id="aes-submit" style="display: flex; justify-content: center; flex-direction: row;">
+  <input type="button" style="margin: 0 5px;" value="Start" id="aes-submit-button" onclick="start_aes($('#aes-data').val(), $('#aes-key').val())">
+  <input type="button" style="margin: 0 5px;" value="Next" id="aes-next-button" class="hidden" onclick="aes_step(current_aes_state)">
+  <input type="button" style="margin: 0 5px;" value="Substep" id="aes-substep-button" class="hidden" onclick="aes_substep(current_aes_state)">
+  <input type="button" style="margin: 0 5px;" value="Decypt" id="aes-decrypt-button" class="hidden" onclick="start_aes_decrypt(current_aes_state)">
+  </div>
+  <div id="aes-container" style="display: flex; flex-direction: column; justify-content: center; margin: 25vh">
+	<h2 id="aes-step-name" style="text-align: center;"></h2>
+  <div id="aes-info" style="display: flex; flex-direction: row; justify-content: center;">
+    <div id="aes-state" style="display: flex; flex-direction: row; justify-content: center;">
+      <div id="aes-state-left-braket" style="font-size: 8rem; font-weight: 1;">[</div>
+      <div id="aes-state-col-0" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-0-0" style="margin: 3px"></div>
+        <div id="aes-1-0" style="margin: 3px"></div>
+        <div id="aes-2-0" style="margin: 3px"></div>
+        <div id="aes-3-0" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-col-1" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-0-1" style="margin: 3px"></div>
+        <div id="aes-1-1" style="margin: 3px"></div>
+        <div id="aes-2-1" style="margin: 3px"></div>
+        <div id="aes-3-1" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-col-2" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-0-2" style="margin: 3px"></div>
+        <div id="aes-1-2" style="margin: 3px"></div>
+        <div id="aes-2-2" style="margin: 3px"></div>
+        <div id="aes-3-2" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-col-3" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-0-3" style="margin: 3px"></div>
+        <div id="aes-1-3" style="margin: 3px"></div>
+        <div id="aes-2-3" style="margin: 3px"></div>
+        <div id="aes-3-3" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-right-braket" style="font-size: 8rem; font-weight: 1;">]</div>
+    </div>
+    <div id="aes-1-2-symbol" style="font-size: 8rem; font-weight: 1; display: flex; flex-direction: column; justify-content: center;"></div>
+    <div id="aes-2-state" style="display: flex; flex-direction: row; justify-content: center;" class="hidden">
+      <div id="aes-state-2-left-braket" style="font-size: 8rem; font-weight: 1;">[</div>
+      <div id="aes-state-2-col-0" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-2-0-0" style="margin: 3px"></div>
+        <div id="aes-2-1-0" style="margin: 3px"></div>
+        <div id="aes-2-2-0" style="margin: 3px"></div>
+        <div id="aes-2-3-0" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-2-col-1" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-2-0-1" style="margin: 3px"></div>
+        <div id="aes-2-1-1" style="margin: 3px"></div>
+        <div id="aes-2-2-1" style="margin: 3px"></div>
+        <div id="aes-2-3-1" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-2-col-2" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-2-0-2" style="margin: 3px"></div>
+        <div id="aes-2-1-2" style="margin: 3px"></div>
+        <div id="aes-2-2-2" style="margin: 3px"></div>
+        <div id="aes-2-3-2" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-2-col-3" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-2-0-3" style="margin: 3px"></div>
+        <div id="aes-2-1-3" style="margin: 3px"></div>
+        <div id="aes-2-2-3" style="margin: 3px"></div>
+        <div id="aes-2-3-3" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-2-right-braket" style="font-size: 8rem; font-weight: 1;">]</div>
+    </div>
+    <div id="aes-2-3-symbol" style="font-size: 8rem; font-weight: 1; display: flex; flex-direction: column; justify-content: center;"></div>
+    <div id="aes-3-state" style="display: flex; flex-direction: row; justify-content: center;" class="hidden">
+      <div id="aes-state-3-left-braket" style="font-size: 8rem; font-weight: 1;">[</div>
+      <div id="aes-state-3-col-0" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-3-0-0" style="margin: 3px"></div>
+        <div id="aes-3-1-0" style="margin: 3px"></div>
+        <div id="aes-3-2-0" style="margin: 3px"></div>
+        <div id="aes-3-3-0" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-3-col-1" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-3-0-1" style="margin: 3px"></div>
+        <div id="aes-3-1-1" style="margin: 3px"></div>
+        <div id="aes-3-2-1" style="margin: 3px"></div>
+        <div id="aes-3-3-1" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-3-col-2" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-3-0-2" style="margin: 3px"></div>
+        <div id="aes-3-1-2" style="margin: 3px"></div>
+        <div id="aes-3-2-2" style="margin: 3px"></div>
+        <div id="aes-3-3-2" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-3-col-3" style="display: flex; flex-direction: column; justify-content: center;">
+        <div id="aes-3-0-3" style="margin: 3px"></div>
+        <div id="aes-3-1-3" style="margin: 3px"></div>
+        <div id="aes-3-2-3" style="margin: 3px"></div>
+        <div id="aes-3-3-3" style="margin: 3px"></div>
+      </div>
+      <div id="aes-state-3-right-braket" style="font-size: 8rem; font-weight: 1;">]</div>
+    </div>
+  </div>
+  </div>
+</body>
+</html>
